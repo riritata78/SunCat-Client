@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+build.log
+build_errors.txt
+build_result.txt
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Java
+*.class
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config
+local.properties
+
+# Compiled jars
+*.jar
+!gradle/wrapper/*.jar
