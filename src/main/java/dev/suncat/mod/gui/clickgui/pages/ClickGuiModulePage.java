@@ -65,8 +65,13 @@ public final class ClickGuiModulePage {
         this.host.getComponents().forEach(c -> c.drawScreen(context, mouseX, mouseY, delta));
     }
 
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        this.host.getComponents().forEach(c -> c.mouseClicked(mouseX, mouseY, mouseButton));
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        for (dev.suncat.mod.gui.items.Component c : this.host.getComponents()) {
+            if (c.mouseClicked(mouseX, mouseY, mouseButton)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void mouseReleased(int mouseX, int mouseY, int releaseButton) {
@@ -81,10 +86,17 @@ public final class ClickGuiModulePage {
         this.host.getComponents().forEach(c -> c.onKeyTyped(chr, modifiers));
     }
 
-    public void mouseScrolled(double verticalAmount) {
+    public void mouseScrolled(double mouseX, double mouseY, double verticalAmount) {
         if (dev.suncat.api.utils.Wrapper.mc == null || dev.suncat.api.utils.Wrapper.mc.getWindow() == null) {
             return;
         }
+        // 先检查是否有子项消耗了滚动事件（如字体菜单）
+        for (dev.suncat.mod.gui.items.Component c : this.host.getComponents()) {
+            if (c.mouseScrolled(mouseX, mouseY, verticalAmount)) {
+                return; // 事件已被消耗
+            }
+        }
+        // 如果没有被消耗，执行原来的面板移动逻辑
         if (InputUtil.isKeyPressed(dev.suncat.api.utils.Wrapper.mc.getWindow().getHandle(), 340)) {
             if (verticalAmount < 0.0) {
                 this.host.getComponents().forEach(component -> component.setX(component.getTargetX() - 15));

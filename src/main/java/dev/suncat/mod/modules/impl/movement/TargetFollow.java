@@ -20,6 +20,10 @@ public class TargetFollow extends Module {
     private final SliderSetting range = this.add(new SliderSetting("Range", 50.0, 1.0, 200.0, 1.0));
     private final BooleanSetting holdW = this.add(new BooleanSetting("HoldW", true));
     private final BooleanSetting prioritizeHeight = this.add(new BooleanSetting("PrioritizeHeight", false));
+    // 新增：高度偏移设置（砸人后先提升的高度）
+    private final SliderSetting heightOffset = this.add(new SliderSetting("HeightOffset", 3.0, 0.0, 10.0, 0.5));
+    // 新增：移动时禁用跟随
+    private final BooleanSetting disableOnMove = this.add(new BooleanSetting("DisableOnMove", true));
 
     public TargetFollow() {
         super("TargetFollow", Category.Movement);
@@ -48,33 +52,56 @@ public class TargetFollow extends Module {
     public void onRotation(UpdateRotateEvent event) {
         if (nullCheck()) return;
         if (!mc.player.isFallFlying() && !ElytraFly.INSTANCE.isFallFlying()) return;
-        
-        // 如果 ElytraFly 的 Mode 是 Control，通常不建议覆盖，但如果是其他模式 (如 Rotation) 可以覆盖
-        // 这里假设在 Rotation 模式下运行
-        
+
         PlayerEntity target = this.getClosestPlayer();
-        if (target != null) {
-            Box box = target.getBoundingBox();
-            // 如果开启了 prioritizeHeight，瞄准头部，否则瞄准身体中心
-            Vec3d lookPos = prioritizeHeight.getValue() ? target.getPos().add(0, 0.6, 0) : target.getBoundingBox().getCenter();
-            
-            // 计算旋转
-            float[] rotations = RotationManager.getRotation(mc.player.getEyePos(), lookPos);
-            float yaw = rotations[0];
-            float pitch = rotations[1];
-            
-            event.setYaw(yaw);
-            event.setPitch(pitch);
-            
-            // 自动前进
-            if (this.holdW.getValue()) {
-                mc.options.forwardKey.setPressed(true);
-            }
-        } else {
-            // 如果没有目标且开启了 HoldW，松开 W
+        if (target == null) {
+            // 没有目标时松开 W
             if (this.holdW.getValue()) {
                 mc.options.forwardKey.setPressed(false);
             }
+            return;
+        }
+
+        // 检查玩家是否在主动移动（按下 WASD 任意键）
+        boolean isPlayerMoving = mc.options.forwardKey.isPressed()
+            || mc.options.backKey.isPressed()
+            || mc.options.leftKey.isPressed()
+            || mc.options.rightKey.isPressed();
+
+        // 如果开启了 DisableOnMove 且玩家在移动，完全交出控制权
+        // 不抢夺旋转，不自动按 W，并松开之前自动按下的 W 键
+        if (this.disableOnMove.getValue() && isPlayerMoving) {
+            // 如果 HoldW 之前按下了 W，现在松开让用户自己控制
+            if (this.holdW.getValue()) {
+                mc.options.forwardKey.setPressed(false);
+            }
+            return;
+        }
+
+        // 计算目标位置：如果开启 prioritizeHeight，瞄准头部；否则瞄准身体中心
+        Vec3d targetPos = prioritizeHeight.getValue() ? target.getPos().add(0, 0.6, 0) : target.getBoundingBox().getCenter();
+
+        // 添加高度偏移：仅当目标在地上时才应用 HeightOffset 往上飞
+        // 如果目标在空中，则正常跟随目标当前高度
+        if (target.isOnGround()) {
+            double currentHeightOffset = this.heightOffset.getValue();
+            if (currentHeightOffset > 0) {
+                targetPos = targetPos.add(0, currentHeightOffset, 0);
+            }
+        }
+
+        // 计算旋转角度
+        float[] rotations = RotationManager.getRotation(mc.player.getEyePos(), targetPos);
+        float yaw = rotations[0];
+        float pitch = rotations[1];
+
+        // 应用旋转
+        event.setYaw(yaw);
+        event.setPitch(pitch);
+
+        // 自动前进（HoldW）
+        if (this.holdW.getValue()) {
+            mc.options.forwardKey.setPressed(true);
         }
     }
 

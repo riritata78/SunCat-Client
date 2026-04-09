@@ -60,6 +60,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -74,6 +75,7 @@ extends Entity {
     private boolean previousElytra = false;
     @Unique
     private long lastLerp = 0L;
+     @Shadow protected int fallFlyingTicks;
 
     public MixinLivingEntity(EntityType<?> type, World world) {
         super(type, world);
@@ -114,16 +116,54 @@ extends Entity {
         return instance.getPitch();
     }
 
+    // StrafeFix - replace yaw in travel (Sn0w style)
+    @Redirect(method={"travel"}, at=@At(value="INVOKE", target="Lnet/minecraft/entity/LivingEntity;getYaw()F"), require=0)
+    public float replaceYaw_travel(LivingEntity instance) {
+        if ((Entity)LivingEntity.class.cast((Object)this) == MinecraftClient.getInstance().player) {
+            dev.suncat.mod.modules.impl.movement.EFly efly = dev.suncat.mod.modules.impl.movement.EFly.INSTANCE;
+            boolean isEFlyGrim = efly != null && efly.isOn() && efly.mode.getValue() == dev.suncat.mod.modules.impl.movement.EFly.Mode.Grim;
+            if ((AntiCheat.INSTANCE.strafeFix.getValue() || isEFlyGrim) && RotationManager.INSTANCE.getRotation() != null) {
+                return RotationManager.INSTANCE.getRotation().yaw;
+            }
+        }
+        return instance.getYaw();
+    }
+
     // StrafeFix - replace rotation vector in travel (Sn0w style)
     @Redirect(method={"travel"}, at=@At(value="INVOKE", target="Lnet/minecraft/entity/LivingEntity;getRotationVector()Lnet/minecraft/util/math/Vec3d;"), require=0)
     public Vec3d replaceVelocity(LivingEntity instance) {
         // Sn0w StrafeFix: 强制使用客户端旋转向量修复移动方向
         if ((Entity)LivingEntity.class.cast((Object)this) == MinecraftClient.getInstance().player) {
-            if (AntiCheat.INSTANCE.strafeFix.getValue() && RotationManager.INSTANCE.getRotation() != null) {
+            // EFly Grim 模式下自动启用
+            dev.suncat.mod.modules.impl.movement.EFly efly = dev.suncat.mod.modules.impl.movement.EFly.INSTANCE;
+            boolean isEFlyGrim = efly != null && efly.isOn() && efly.mode.getValue() == dev.suncat.mod.modules.impl.movement.EFly.Mode.Grim;
+            if ((AntiCheat.INSTANCE.strafeFix.getValue() || isEFlyGrim) && RotationManager.INSTANCE.getRotation() != null) {
                 return RotationManager.INSTANCE.getRotationVector();
             }
         }
         return instance.getRotationVector();
+    }
+
+    // StrafeFix - replace movement input in travel (Sn0w style)
+    @ModifyVariable(method={"travel"}, at=@At("HEAD"), ordinal=0, argsOnly=true)
+    private Vec3d travelStrafeFix(Vec3d movementInput) {
+        if ((Entity)LivingEntity.class.cast((Object)this) == MinecraftClient.getInstance().player) {
+            dev.suncat.mod.modules.impl.movement.EFly efly = dev.suncat.mod.modules.impl.movement.EFly.INSTANCE;
+            boolean isEFlyGrim = efly != null && efly.isOn() && efly.mode.getValue() == dev.suncat.mod.modules.impl.movement.EFly.Mode.Grim;
+            if (isEFlyGrim && RotationManager.INSTANCE.getRotation() != null) {
+                // 修正 WASD 输入方向
+                float rotationYaw = RotationManager.INSTANCE.getRotation().yaw;
+                float mF = (float)movementInput.z;
+                float mS = (float)movementInput.x;
+                float delta = (((LivingEntity)(Object)this).getYaw() - rotationYaw) * 0.017453292F;
+                float cos = net.minecraft.util.math.MathHelper.cos(delta);
+                float sin = net.minecraft.util.math.MathHelper.sin(delta);
+                float newS = Math.round(mS * cos - mF * sin);
+                float newF = Math.round(mF * cos + mS * sin);
+                return new net.minecraft.util.math.Vec3d(newS, movementInput.y, newF);
+            }
+        }
+        return movementInput;
     }
 
     @Inject(method={"getHandSwingDuration"}, at={@At(value="HEAD")}, cancellable=true)
@@ -175,6 +215,12 @@ extends Entity {
     private void lerpToHook(double x, double y, double z, float yRot, float xRot, int steps, CallbackInfo ci) {
         suncat.EVENT_BUS.post(LerpToEvent.get((LivingEntity)LivingEntity.class.cast((Object)this), x, y, z, yRot, xRot, this.lastLerp));
         this.lastLerp = System.currentTimeMillis();
+    }
+     @Inject(method = "tick", at = @At("TAIL"))
+    private void lockFallFlyingTicksHook(CallbackInfo ci) {
+        if ((Entity)LivingEntity.class.cast((Object)this) == MinecraftClient.getInstance().player && dev.suncat.mod.modules.impl.movement.EFly.isStandingFly()) {
+            this.fallFlyingTicks = 0;
+        }
     }
 
     @Inject(method={"setSprinting"}, at={@At(value="HEAD")}, cancellable=true)

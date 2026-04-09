@@ -85,25 +85,28 @@ public abstract class MixinEntity {
 
     @Inject(method={"getPose"}, at={@At(value="HEAD")}, cancellable=true)
     void getPoseHook(CallbackInfoReturnable<EntityPose> cir) {
+        // 只对你自己（玩家）生效
         if (Entity.class.cast(this) != MinecraftClient.getInstance().player) {
             return;
         }
-        // Force standing pose when ElytraFly Bounce mode is active
+
+        // 核心：如果 EFly 开启了 Grim 模式，强制返回 STANDING（站立）姿态
+        // 这样服务端和客户端渲染都会认为你是站着的，不会进入俯冲动画
+        if (dev.suncat.mod.modules.impl.movement.EFly.isStandingFly()) {
+            cir.setReturnValue(EntityPose.STANDING);
+            return;
+        }
+
+        // 下面是你原本就有的其他模块判断，保留即可
         if (ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.mode.is(ElytraFly.Mode.Bounce)) {
             cir.setReturnValue(EntityPose.STANDING);
             return;
         }
-        // Force standing pose when EFly Grim mode is active
-        if (dev.suncat.mod.modules.impl.movement.EFly.INSTANCE.isOn() && dev.suncat.mod.modules.impl.movement.EFly.INSTANCE.mode.is(dev.suncat.mod.modules.impl.movement.EFly.Mode.Grim)) {
-            cir.setReturnValue(EntityPose.STANDING);
-            return;
-        }
-        // Force standing pose when LongJump Grim mode is active
+
         if (dev.suncat.mod.modules.impl.movement.LongJump.INSTANCE.isOn() && dev.suncat.mod.modules.impl.movement.LongJump.INSTANCE.mode.is(dev.suncat.mod.modules.impl.movement.LongJump.Mode.Grim)) {
             cir.setReturnValue(EntityPose.STANDING);
             return;
         }
-        // Note: Custom FakeFly and ElytraFly Rotation forced standing logic removed as requested.
     }
 
     @Inject(method={"setSprinting"}, at={@At(value="HEAD")}, cancellable=true)

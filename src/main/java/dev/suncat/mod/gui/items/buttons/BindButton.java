@@ -67,7 +67,7 @@ extends Button {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY)) {
             if (InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
                 if (this.setting.getName().equals("Key")) {
@@ -83,10 +83,13 @@ extends Button {
             } else {
                 this.onMouseClick();
             }
+            return true;
         } else if (this.isListening) {
             this.setting.setValue(-mouseButton - 2);
             this.onMouseClick();
+            return true;
         }
+        return false;
     }
 
     @Override

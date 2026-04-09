@@ -51,6 +51,12 @@ implements Wrapper {
     public static RotationManager INSTANCE;
     public static Vec3d directionVec = null;
     public static boolean snapBack = false;
+
+    // 服务器旋转：用于 EFly 等模块只发包不改视角
+    public static boolean serverRotationActive = false;
+    public static float serverYaw = 0.0f;
+    public static float serverPitch = 0.0f;
+
     private static float renderPitch;
     private static float renderYawOffset;
     private static float prevRenderPitch;
@@ -272,7 +278,12 @@ implements Wrapper {
     @EventListener(priority=-999)
     public void onKeyInput(KeyboardInputEvent e) {
         if (!AntiCheat.INSTANCE.movementSync()) {
-            return;
+            // 检查是否是 EFly Grim 模式
+            dev.suncat.mod.modules.impl.movement.EFly efly = dev.suncat.mod.modules.impl.movement.EFly.INSTANCE;
+            boolean isEFlyGrim = efly != null && efly.isOn() && efly.mode.getValue() == dev.suncat.mod.modules.impl.movement.EFly.Mode.Grim;
+            if (!isEFlyGrim) {
+                return;
+            }
         }
         if (BaritoneUtil.isActive()) {
             return;
@@ -285,7 +296,10 @@ implements Wrapper {
         }
         float mF = RotationManager.mc.player.input.movementForward;
         float mS = RotationManager.mc.player.input.movementSideways;
-        float delta = (RotationManager.mc.player.getYaw() - fixYaw) * ((float)Math.PI / 180);
+        
+        // 使用 serverRotation 或 fixYaw 进行 strafeFix
+        float rotationYaw = serverRotationActive ? serverYaw : fixYaw;
+        float delta = (RotationManager.mc.player.getYaw() - rotationYaw) * ((float)Math.PI / 180);
         float cos = MathHelper.cos((float)delta);
         float sin = MathHelper.sin((float)delta);
         RotationManager.mc.player.input.movementSideways = Math.round(mS * cos - mF * sin);
@@ -468,11 +482,6 @@ implements Wrapper {
         return new Rotation(this.rotationYaw, this.rotationPitch);
     }
 
-    // Get rotation vector for strafeFix
-    public Vec3d getRotationVector() {
-        return Vec3d.fromPolar(this.rotationPitch, this.rotationYaw);
-    }
-
     /**
      * Grim Protocol: 发送静默旋转数据包
      * 不修改本地视角，仅通知服务器
@@ -484,12 +493,119 @@ implements Wrapper {
     }
 
     /**
+     * 发送静默旋转包（使用当前实际旋转值）
+     */
+    public void silentRotate() {
+        if (mc.player != null && mc.getNetworkHandler() != null) {
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(
+                mc.player.getX(), mc.player.getY(), mc.player.getZ(), 
+                getActualYaw(), getActualPitch(), mc.player.isOnGround()));
+        }
+    }
+
+    /**
      * Grim Protocol: 将视角同步回玩家实际视角
+     * 用于在旋转操作后恢复服务器的旋转状态
      */
     public void silentSync() {
         if (mc.player != null && mc.getNetworkHandler() != null) {
-            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(mc.player.getX(), mc.player.getY(), mc.player.getZ(), mc.player.getYaw(), mc.player.getPitch(), mc.player.isOnGround()));
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.Full(
+                mc.player.getX(), mc.player.getY(), mc.player.getZ(), 
+                getActualYaw(), getActualPitch(), mc.player.isOnGround()));
         }
+    }
+
+    /**
+     * 获取实际的 Yaw（优先使用管理的旋转）
+     */
+    public float getActualYaw() {
+        if (serverRotationActive) {
+            return serverYaw;
+        }
+        return mc.player.getYaw();
+    }
+
+    /**
+     * 获取实际的 Pitch（优先使用管理的旋转）
+     */
+    public float getActualPitch() {
+        if (serverRotationActive) {
+            return serverPitch;
+        }
+        return mc.player.getPitch();
+    }
+
+    /**
+     * 修正 Yaw 防止超过 180 度边界
+     */
+    public static float fixYaw(float yaw) {
+        float prevYaw = serverRotationActive ? serverYaw : mc.player.getYaw();
+        float diff = yaw - prevYaw;
+
+        if (diff < -180.0f || diff > 180.0f) {
+            float round = Math.round(Math.abs(diff / 360.0f));
+            diff = diff < 0.0f ? diff + 360.0f * round : diff - (360.0f * round);
+        }
+        return yaw;
+    }
+
+    /**
+     * 设置服务器端旋转（不修改本地视角）
+     * 用于 EFly 等模块只发包不改视角
+     */
+    public void setServerRotation(float yaw, float pitch) {
+        serverRotationActive = true;
+        serverYaw = yaw;
+        serverPitch = pitch;
+    }
+
+    /**
+     * 清除服务器端旋转
+     */
+    public void clearServerRotation() {
+        serverRotationActive = false;
+    }
+
+    /**
+     * 检查是否有活跃的服务器旋转
+     */
+    public static boolean hasServerRotation() {
+        return serverRotationActive;
+    }
+
+    /**
+     * 获取旋转方向向量（使用当前管理的旋转）
+     */
+    public Vec3d getRotationVector() {
+        return getRotationVector(rotationYaw, rotationPitch);
+    }
+
+    /**
+     * 获取旋转方向向量（使用指定的 yaw 和 pitch）
+     */
+    public Vec3d getRotationVector(float yaw, float pitch) {
+        float vx = -MathHelper.sin(yaw * ((float)Math.PI / 180)) * MathHelper.cos(pitch * ((float)Math.PI / 180));
+        float vz = MathHelper.cos(yaw * ((float)Math.PI / 180)) * MathHelper.cos(pitch * ((float)Math.PI / 180));
+        float vy = -MathHelper.sin(pitch * ((float)Math.PI / 180));
+        return new Vec3d(vx, vy, vz);
+    }
+
+    /**
+     * 便捷方法：发送旋转包（便捷调用）
+     */
+    public void packetRotate(float yaw, float pitch) {
+        if (mc.player != null && mc.getNetworkHandler() != null) {
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, mc.player.isOnGround()));
+        }
+    }
+
+    /**
+     * 便捷方法：计算两点之间的旋转角度
+     */
+    public static float[] getRotationsTo(Vec3d src, Vec3d dest) {
+        float yaw = (float) (Math.toDegrees(Math.atan2(dest.subtract(src).z, dest.subtract(src).x)) - 90);
+        float pitch = (float) Math.toDegrees(-Math.atan2(dest.subtract(src).y, Math.hypot(dest.subtract(src).x, dest.subtract(src).z)));
+        return new float[]{MathHelper.wrapDegrees(yaw), MathHelper.wrapDegrees(pitch)};
     }
 
     // Simple rotation holder class

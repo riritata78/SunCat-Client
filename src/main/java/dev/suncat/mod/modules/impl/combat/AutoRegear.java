@@ -84,8 +84,8 @@ extends Module {
     private final BooleanSetting take = this.add(new BooleanSetting("Take", true));
     private final BooleanSetting smart = this.add(new BooleanSetting("Smart", true, this.take::getValue).setParent());
     private final BooleanSetting forceMove = this.add(new BooleanSetting("ForceQuickMove", true, () -> this.take.getValue() && this.smart.isOpen()));
-    private final SliderSetting takeSpeed = this.add(new SliderSetting("TakeSpeed", 5, 1, 10, 1, this.take::getValue));
-    private final SliderSetting clickDelay = this.add(new SliderSetting("ClickDelay", 50, 10, 500, 5, this.take::getValue));
+    private final SliderSetting takeSpeed = this.add(new SliderSetting("TakeSpeed", 1, 1, 10, 1, this.take::getValue));
+    private final SliderSetting clickDelay = this.add(new SliderSetting("ClickDelay", 150, 50, 500, 5, this.take::getValue));
     private final BooleanSetting instantTake = this.add(new BooleanSetting("InstantTake", false, this.take::getValue));  // 秒补功能
     private final BindSetting placeKey = this.add(new BindSetting("PlaceKey", -1));
     private final BooleanSetting onlyGround = this.add(new BooleanSetting("OnlyGround", true));

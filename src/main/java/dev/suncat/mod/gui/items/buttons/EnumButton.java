@@ -71,7 +71,7 @@ extends Button {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
             if (this.setting.getName().equalsIgnoreCase("Page")) {
                 boolean resetPage = false;
@@ -86,27 +86,30 @@ extends Button {
                     break;
                 }
                 EnumButton.sound();
-                return;
+                return true;
             }
             Enum defaultValue = (Enum)this.setting.getDefaultValue();
             this.setting.setEnumValue(defaultValue.name());
             EnumButton.sound();
-            return;
+            return true;
         }
-        super.mouseClicked(mouseX, mouseY, mouseButton);
         if (mouseButton == 1 && this.isHovering(mouseX, mouseY)) {
             this.open = !this.open;
             EnumButton.sound();
-        } else if (mouseButton == 0 && this.open) {
+            return true;
+        }
+        if (mouseButton == 0 && this.open) {
             int y = (int)this.y;
             for (Enum o : (Enum[])((Enum)this.setting.getValue()).getDeclaringClass().getEnumConstants()) {
                 if ((float)mouseX > this.x && (float)mouseX < this.x + (float)this.width && mouseY >= y + this.height + 1 && mouseY < y + this.height + 11 + 1) {
                     this.setting.setEnumValue(String.valueOf(o));
                     EnumButton.sound();
+                    return true;
                 }
                 y += 11;
             }
         }
+        return super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override

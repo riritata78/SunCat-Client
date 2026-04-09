@@ -51,10 +51,15 @@ extends Mod {
     public void drawScreen(DrawContext context, int mouseX, int mouseY, float partialTicks) {
     }
 
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        return false;
     }
 
     public void mouseReleased(int mouseX, int mouseY, int releaseButton) {
+    }
+
+    public boolean mouseScrolled(double mouseX, double mouseY, double verticalAmount) {
+        return false;
     }
 
     public void update() {

@@ -126,8 +126,8 @@ public class AutoArmorPlus extends Module {
                 // AutoElytra：配合 ElytraFly 自动切换鞘翅
                 ElytraFly elytraFly = ElytraFly.INSTANCE;
                 if (this.autoElytra.getValue() && elytraFly.isOn() && equipmentSlot == EquipmentSlot.CHEST) {
-                    // GrimDurability 模式不处理
-                    if (elytraFly.mode.is(ElytraFly.Mode.Grim)) {
+                    // 不处理自动切换模式（由 ElytraFly 内部管理）
+                    if (elytraFly.mode.is(ElytraFly.Mode.None)) {
                         continue;
                     }
 

@@ -14,10 +14,12 @@
  */
 package dev.suncat.mod.modules.impl.render;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.suncat.suncat;
 import dev.suncat.api.utils.render.Render3DUtil;
 import dev.suncat.api.utils.world.BlockUtil;
 import dev.suncat.mod.modules.Module;
+import dev.suncat.mod.modules.settings.impl.BooleanSetting;
 import dev.suncat.mod.modules.settings.impl.ColorSetting;
 import java.awt.Color;
 import java.util.ArrayList;
@@ -35,9 +37,12 @@ public class Tracers
 extends Module {
     private final ColorSetting item = this.add(new ColorSetting("Item", new Color(255, 255, 255, 100)).injectBoolean(true));
     private final ColorSetting player = this.add(new ColorSetting("Player", new Color(255, 255, 255, 100)).injectBoolean(true));
-    private final ColorSetting chest = this.add(new ColorSetting("Chest", new Color(255, 255, 255, 100)).injectBoolean(false));
-    private final ColorSetting enderChest = this.add(new ColorSetting("EnderChest", new Color(255, 100, 255, 100)).injectBoolean(false));
-    private final ColorSetting shulkerBox = this.add(new ColorSetting("ShulkerBox", new Color(15, 255, 255, 100)).injectBoolean(false));
+    private final ColorSetting chest = this.add(new ColorSetting("Chest", new Color(255, 255, 255, 100)).injectBoolean(true));
+    private final ColorSetting enderChest = this.add(new ColorSetting("EnderChest", new Color(255, 100, 255, 100)).injectBoolean(true));
+    private final ColorSetting shulkerBox = this.add(new ColorSetting("ShulkerBox", new Color(15, 255, 255, 100)).injectBoolean(true));
+    
+    // 新增：透视墙壁选项
+    private final BooleanSetting throughWalls = this.add(new BooleanSetting("ThroughWalls", true));
 
     public Tracers() {
         super("Tracers", Module.Category.Render);
@@ -47,6 +52,12 @@ extends Module {
     @Override
     public void onRender3D(MatrixStack matrixStack) {
         Tracers.mc.options.getBobView().setValue(false);
+        
+        // 根据 ThroughWalls 设置控制深度测试
+        if (this.throughWalls.getValue()) {
+            RenderSystem.disableDepthTest();
+        }
+        
         if (this.item.booleanValue || this.player.booleanValue) {
             for (Entity entity : suncat.THREAD.getEntities()) {
                 if (entity instanceof ItemEntity && this.item.booleanValue) {
@@ -69,6 +80,11 @@ extends Module {
             }
             if (!(blockEntity instanceof ShulkerBoxBlockEntity) || !this.shulkerBox.booleanValue) continue;
             this.drawLine(blockEntity.getPos().toCenterPos(), this.shulkerBox.getValue());
+        }
+        
+        // 恢复深度测试
+        if (this.throughWalls.getValue()) {
+            RenderSystem.enableDepthTest();
         }
     }
 

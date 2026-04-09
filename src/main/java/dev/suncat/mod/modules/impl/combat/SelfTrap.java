@@ -88,6 +88,8 @@ public class SelfTrap extends Module
     private Map<BlockPos, Long> placedPackets;
     private int blocksPlacedThisTick;
     private double prevY;
+    private boolean initialBurst;
+    private long enableTime;
     
     public SelfTrap() {
         super("SelfTrap", Category.Combat);
@@ -197,6 +199,8 @@ public class SelfTrap extends Module
         this.shouldCenter = true;
         this.trapBlocks.clear();
         this.placedPackets.clear();
+        this.initialBurst = true;
+        this.enableTime = System.currentTimeMillis();
     }
     
     @Override
@@ -217,7 +221,10 @@ public class SelfTrap extends Module
         if ((this.timingMode.getValue() == TimingMode.Pre && event.isPost()) || (this.timingMode.getValue() == TimingMode.Post && event.isPre())) {
             return;
         }
-        if (!this.timer.passed((long)this.placeDelay.getValue())) {
+        if (this.initialBurst && System.currentTimeMillis() - this.enableTime > 500) {
+            this.initialBurst = false;
+        }
+        if (!this.initialBurst && !this.timer.passed((long)this.placeDelay.getValue())) {
             return;
         }
         this.directionVec = null;
@@ -525,7 +532,8 @@ public class SelfTrap extends Module
             return false;
         }
         this.placedPackets.remove(pos);
-        return this.blocksPlacedThisTick < this.blocksPerTick.getValue();
+        int maxBlocks = this.initialBurst ? 8 : (int)this.blocksPerTick.getValue();
+        return this.blocksPlacedThisTick < maxBlocks;
     }
     
     private boolean faceVector(final Vec3d directionVec) {

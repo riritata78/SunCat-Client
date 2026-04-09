@@ -16,11 +16,14 @@ public class FontSelector {
      */
     public static List<String> getAvailableFonts() {
         List<String> fonts = new ArrayList<>();
-        
+
         // 1. 添加默认选项
         fonts.add("default");
-        
-        // 2. 扫描自定义字体资源 (assets/suncatclient/font/)
+
+        // 2. 添加 SunCat 内置资源字体（硬编码列表，确保始终可用）
+        fonts.add("songti");    // 宋体(资源字体)
+
+        // 3. 扫描自定义字体资源 (assets/suncatclient/font/)
         try {
             ClassLoader classLoader = FontSelector.class.getClassLoader();
             java.net.URL resource = classLoader.getResource("assets/suncatclient/font");
@@ -35,7 +38,10 @@ public class FontSelector {
                                 .forEach(p -> {
                                     String name = p.getFileName().toString();
                                     if (name.endsWith(".ttf") || name.endsWith(".otf")) {
-                                        fonts.add(name.substring(0, name.lastIndexOf('.')));
+                                        String fontName = name.substring(0, name.lastIndexOf('.'));
+                                        if (!fonts.contains(fontName)) {
+                                            fonts.add(fontName);
+                                        }
                                     }
                                 });
                         }
@@ -47,7 +53,10 @@ public class FontSelector {
                             .forEach(p -> {
                                 String name = p.getFileName().toString();
                                 if (name.endsWith(".ttf") || name.endsWith(".otf")) {
-                                    fonts.add(name.substring(0, name.lastIndexOf('.')));
+                                    String fontName = name.substring(0, name.lastIndexOf('.'));
+                                    if (!fonts.contains(fontName)) {
+                                        fonts.add(fontName);
+                                    }
                                 }
                             });
                     }
@@ -56,8 +65,8 @@ public class FontSelector {
         } catch (Exception e) {
             // 忽略扫描错误
         }
-        
-        // 3. 扫描 Windows 系统字体
+
+        // 4. 扫描 Windows 系统字体
         File fontDir = new File("C:\\Windows\\Fonts");
         if (fontDir.exists() && fontDir.isDirectory()) {
             File[] fontFiles = fontDir.listFiles();
@@ -67,22 +76,22 @@ public class FontSelector {
                     if (name.endsWith(".ttf") || name.endsWith(".otf") || name.endsWith(".ttc")) {
                         String fontName = name.substring(0, name.lastIndexOf('.'));
                         // 只添加常用的中文字体和英文字体
-                        if (isCommonFont(fontName)) {
+                        if (isCommonFont(fontName) && !fonts.contains(fontName)) {
                             fonts.add(fontName);
                         }
                     }
                 }
             }
         }
-        
-        // 4. 添加常用的后备字体
+
+        // 5. 添加常用的后备字体
         fonts.add("msyh");      // 微软雅黑
         fonts.add("simsun");    // 宋体
         fonts.add("simhei");    // 黑体
         fonts.add("arial");
         fonts.add("segoeui");
         fonts.add("verdana");
-        
+
         // 去重
         return fonts.stream().distinct().collect(java.util.stream.Collectors.toList());
     }

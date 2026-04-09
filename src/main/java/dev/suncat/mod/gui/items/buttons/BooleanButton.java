@@ -72,7 +72,7 @@ extends Button {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
             if (this.setting.hasParent()) {
                 boolean resetChildren = false;
@@ -89,13 +89,19 @@ extends Button {
             }
             this.setting.setValue(this.setting.getDefaultValue());
             BooleanButton.sound();
-            return;
+            return true;
         }
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+        if (mouseButton == 0 && this.isHovering(mouseX, mouseY)) {
+            this.toggle();
+            BooleanButton.sound();
+            return true;
+        }
         if (mouseButton == 1 && this.isHovering(mouseX, mouseY)) {
             BooleanButton.sound();
             this.setting.setOpen(!this.setting.isOpen());
+            return true;
         }
+        return false;
     }
 
     @Override

@@ -385,7 +385,9 @@ extends Screen {
             if (this.handleSearchBarClick((int)mouseX, (int)mouseY, clickedButton)) {
                 return true;
             }
-            this.modulePage.mouseClicked((int)mouseX, (int)mouseY, clickedButton);
+            if (this.modulePage.mouseClicked((int)mouseX, (int)mouseY, clickedButton)) {
+                return true;
+            }
             return super.mouseClicked(mouseX, mouseY, clickedButton);
         }
         ClickGuiFrame frame = this.lastFrame;
@@ -448,7 +450,7 @@ extends Screen {
 
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (this.page == Page.Module) {
-            this.modulePage.mouseScrolled(verticalAmount);
+            this.modulePage.mouseScrolled(mouseX, mouseY, verticalAmount);
         } else if (this.page == Page.Config) {
             if (Wrapper.mc != null && Wrapper.mc.getWindow() != null) {
                 this.configPage.mouseScrolled(verticalAmount, Wrapper.mc.getWindow().getScaledHeight());

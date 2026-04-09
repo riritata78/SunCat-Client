@@ -1,7 +1,6 @@
 package dev.suncat.api.utils.player;
 
 import dev.suncat.api.events.impl.MoveEvent;
-import dev.suncat.mod.modules.impl.movement.EFly;
 import dev.suncat.mod.modules.impl.player.MiddleClick;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.EquipmentSlot;

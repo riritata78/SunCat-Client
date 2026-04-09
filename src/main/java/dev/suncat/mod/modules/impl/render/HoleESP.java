@@ -40,6 +40,10 @@ extends Module {
     public final SliderSetting height = this.add(new SliderSetting("Height", 1.0, -3.0, 3.0, 0.1));
     public final SliderSetting wallHeight = this.add(new SliderSetting("WallHeight", 3.0, -3.0, 3.0, 0.1));
     public final BooleanSetting sideCheck = this.add(new BooleanSetting("SideCheck", true));
+    
+    // 新增：透视墙壁选项
+    public final BooleanSetting throughWalls = this.add(new BooleanSetting("ThroughWalls", true));
+    
     private final ColorSetting airFill = this.add(new ColorSetting("AirFill", new Color(148, 0, 0, 100)).injectBoolean(true));
     private final ColorSetting airBox = this.add(new ColorSetting("AirBox", new Color(148, 0, 0, 100)).injectBoolean(true));
     private final ColorSetting airFade = this.add(new ColorSetting("AirFade", new Color(148, 0, 0, 0)).injectBoolean(true));
@@ -166,11 +170,23 @@ extends Module {
     @Override
     public void onRender3D(MatrixStack matrixStack) {
         this.drawing = true;
+        
+        // 根据 ThroughWalls 设置控制深度测试
+        if (this.throughWalls.getValue()) {
+            com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
+        }
+        
         this.draw(matrixStack, this.bedrockList, this.bedrockFill, this.bedrockFade, this.bedrockBox, this.height.getValue());
         this.draw(matrixStack, this.airList, this.airFill, this.airFade, this.airBox, this.airHeight.getValue());
         this.draw(matrixStack, this.normalList, this.normalFill, this.normalFade, this.normalBox, this.height.getValue());
         this.draw(matrixStack, this.wallList, this.wallFill, this.wallFade, this.wallBox, this.wallHeight.getValue());
         this.draw(matrixStack, this.wallSideList, this.wallSideFill, this.wallSideFade, this.wallSideBox, this.height.getValue());
+        
+        // 恢复深度测试
+        if (this.throughWalls.getValue()) {
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
+        }
+        
         this.drawing = false;
     }
 

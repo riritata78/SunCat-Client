@@ -18,6 +18,7 @@ import dev.suncat.mod.modules.impl.client.ClickGui;
 import dev.suncat.mod.modules.impl.client.Fonts;
 import dev.suncat.mod.modules.settings.impl.StringSetting;
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -65,11 +66,11 @@ extends Button {
     }
     
     /**
-     * 检查是否是字体设置
+     * 检查是否是字体设置（仅限 Font 主字体，Alternate 现在是枚举选择器）
      */
     private boolean isFontSetting() {
-        return Fonts.INSTANCE != null && 
-               (this.setting == Fonts.INSTANCE.font || this.setting == Fonts.INSTANCE.alternate);
+        return Fonts.INSTANCE != null &&
+               this.setting == Fonts.INSTANCE.font;
     }
     
     /**
@@ -212,28 +213,32 @@ extends Button {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         // 处理字体菜单点击
         if (this.isFontSetting() && this.handleFontMenuClick(mouseX, mouseY, mouseButton)) {
-            return;
+            return true;
         }
-        
+
         // 右键打开字体选择菜单
         if (mouseButton == 1 && this.isHovering(mouseX, mouseY) && this.isFontSetting()) {
             this.showFontMenu = !this.showFontMenu;
             this.fontMenuScroll = 0;
             StringButton.sound();
-            return;
+            return true;
         }
-        
+
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
             this.isListening = false;
             this.currentString = "";
             this.setting.setValue(this.setting.getDefaultValue());
             StringButton.sound();
-            return;
+            return true;
         }
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+        if (mouseButton == 0 && this.isHovering(mouseX, mouseY)) {
+            this.onMouseClick();
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -300,6 +305,26 @@ extends Button {
     @Override
     public void update() {
         this.setHidden(!this.setting.isVisible());
+    }
+
+    /**
+     * 处理鼠标滚轮滚动字体菜单
+     */
+    public boolean mouseScrolled(double mouseX, double mouseY, double verticalAmount) {
+        if (!this.showFontMenu || !this.isFontSetting()) return false;
+        
+        List<String> fonts = this.getFontList();
+        int maxScroll = Math.max(0, fonts.size() - FONT_MENU_MAX_ITEMS);
+        
+        if (verticalAmount > 0) {
+            // 向上滚动
+            this.fontMenuScroll = Math.max(0, this.fontMenuScroll - 1);
+        } else if (verticalAmount < 0) {
+            // 向下滚动
+            this.fontMenuScroll = Math.min(maxScroll, this.fontMenuScroll + 1);
+        }
+        
+        return this.showFontMenu; // 如果菜单正在显示，消耗滚动事件
     }
 
     private void enterString() {

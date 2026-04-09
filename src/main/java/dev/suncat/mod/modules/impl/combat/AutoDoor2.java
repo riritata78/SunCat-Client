@@ -360,32 +360,35 @@ public class AutoDoor2 extends Module {
 
     private boolean placeTrapdoorAgainstWall(BlockPos pos, Direction wallDir) {
          int slot = this.findClass(TrapdoorBlock.class);
-         int oldSlot = mc.player.getInventory().selectedSlot;
+         if (slot == -1) return false;
 
-         if (slot != -1) {
-             this.doSwap(slot);
-
-             BlockPos neighbor = pos.offset(wallDir);
-             Direction side = wallDir.getOpposite();
-
-             Vec3d hitVec = neighbor.toCenterPos().add(
-                 side.getVector().getX() * 0.5,
-                 0.9,
-                 side.getVector().getZ() * 0.5
-             );
-
-             clickBlock(neighbor, side, this.rotate.getValue(), this.packet.getValue(), hitVec);
-
-             if (this.inventory.getValue()) {
-                 this.doSwap(slot);
-                 EntityUtil.syncInventory();
-             } else {
-                 InventoryUtil.switchToSlot(oldSlot);
-             }
-             PlaceRender.INSTANCE.create(pos);
-             return true;
+         BlockPos neighbor = pos.offset(wallDir);
+         // 修复：检查 neighbor 是否是有效放置面，不能对着空气放置
+         if (mc.world.isAir(neighbor) || BlockUtil.canReplace(neighbor)) {
+             return false;
          }
-         return false;
+
+         int oldSlot = mc.player.getInventory().selectedSlot;
+         this.doSwap(slot);
+
+         Direction side = wallDir.getOpposite();
+
+         Vec3d hitVec = neighbor.toCenterPos().add(
+             side.getVector().getX() * 0.5,
+             0.9,
+             side.getVector().getZ() * 0.5
+         );
+
+         clickBlock(neighbor, side, this.rotate.getValue(), this.packet.getValue(), hitVec);
+
+         if (this.inventory.getValue()) {
+             this.doSwap(slot);
+             EntityUtil.syncInventory();
+         } else {
+             InventoryUtil.switchToSlot(oldSlot);
+         }
+         PlaceRender.INSTANCE.create(pos);
+         return true;
     }
 
     private boolean placeTrapdoor(BlockPos pos, PlayerEntity target) {
@@ -395,7 +398,7 @@ public class AutoDoor2 extends Module {
         if (slot != -1) {
             this.doSwap(slot);
 
-            placeBlockTop(pos, this.rotate.getValue(), this.packet.getValue(), target);
+            boolean placed = placeBlockTop(pos, this.rotate.getValue(), this.packet.getValue(), target);
 
             if (this.inventory.getValue()) {
                 this.doSwap(slot);
@@ -403,14 +406,117 @@ public class AutoDoor2 extends Module {
             } else {
                 InventoryUtil.switchToSlot(oldSlot);
             }
-            PlaceRender.INSTANCE.create(pos);
-            return true;
+
+            if (placed) {
+                PlaceRender.INSTANCE.create(pos);
+                return true;
+            }
         }
         return false;
     }
 
-    private void placeBlockTop(BlockPos pos, boolean rotate, boolean packet, PlayerEntity target) {
-        if (this.packet.getValue()) {
+    /**
+     * 检查目标玩家是否在指定位置
+     * 不会忽略玩家实体
+     */
+    private boolean isPlayerAtPosition(BlockPos pos, PlayerEntity target) {
+        // 使用玩家的 BoundingBox 来检查是否在目标位置
+        return target.getBoundingBox().intersects(new Box(pos));
+    }
+
+    private boolean placeBlockTop(BlockPos pos, boolean rotate, boolean packet, PlayerEntity target) {
+        // 检查目标玩家是否在放置位置
+        // 不会忽略玩家实体，确保活版门可以放置在玩家身上
+        boolean playerAtPos = isPlayerAtPosition(pos, target);
+        
+        if (packet) {
+            // Packet 模式逻辑修复：寻找有效的放置面
+            Direction bestSide = null;
+            double maxDist = -1.0;
+
+            // 1. 尝试根据距离寻找最佳面
+            for (Direction side : Direction.values()) {
+                if (side == Direction.UP || side == Direction.DOWN) continue;
+                double dist = getDistanceToWall(target, side);
+                if (dist > maxDist) {
+                    maxDist = dist;
+                    bestSide = side;
+                }
+            }
+
+            Direction finalSide = null;
+
+            // 2. 验证最佳面是否有效（不能对着空气放置）
+            if (bestSide != null) {
+                BlockPos neighbor = pos.offset(bestSide);
+                if (!mc.world.isAir(neighbor) && !BlockUtil.canReplace(neighbor)) {
+                    finalSide = bestSide;
+                }
+            }
+
+            // 3. 如果最佳面无效，尝试寻找任意有效的水平面
+            if (finalSide == null) {
+                for (Direction side : Direction.values()) {
+                    if (side == Direction.UP || side == Direction.DOWN) continue;
+                    BlockPos neighbor = pos.offset(side);
+                    if (!mc.world.isAir(neighbor) && !BlockUtil.canReplace(neighbor)) {
+                        finalSide = side;
+                        break;
+                    }
+                }
+            }
+
+            // 4. 如果水平面都无效，尝试头顶（天花板悬挂）
+            if (finalSide == null) {
+                BlockPos up = pos.up();
+                if (!mc.world.isAir(up) && !BlockUtil.canReplace(up)) {
+                    finalSide = Direction.UP;
+                }
+            }
+
+            // 5. 如果还是没有有效位置，但有玩家在位置，则强制放置
+            if (finalSide == null) {
+                if (playerAtPos) {
+                    // 玩家在位置，尝试寻找任意有效的放置面
+                    for (Direction side : Direction.values()) {
+                        if (side == Direction.UP || side == Direction.DOWN) continue;
+                        BlockPos neighbor = pos.offset(side);
+                        if (!mc.world.isAir(neighbor) && !BlockUtil.canReplace(neighbor)) {
+                            finalSide = side;
+                            break;
+                        }
+                    }
+                    // 如果还是没有，使用默认的北方
+                    if (finalSide == null) {
+                        finalSide = Direction.NORTH;
+                    }
+                } else {
+                    return false;
+                }
+            }
+
+            // 6. 执行放置
+            BlockPos neighbor;
+            Direction opp;
+            Vec3d hitVec;
+
+            if (finalSide == Direction.UP) {
+                neighbor = pos.up();
+                opp = Direction.DOWN;
+                hitVec = neighbor.toCenterPos().add(0, -0.5, 0);
+            } else {
+                neighbor = pos.offset(finalSide);
+                opp = finalSide.getOpposite();
+                hitVec = neighbor.toCenterPos().add(
+                    opp.getVector().getX() * 0.5,
+                    0.9,
+                    opp.getVector().getZ() * 0.5
+                );
+            }
+
+            clickBlock(neighbor, opp, false, true, hitVec);
+            return true;
+        } else {
             Direction bestSide = null;
             double maxDist = -1.0;
 
@@ -423,52 +529,26 @@ public class AutoDoor2 extends Module {
                 }
             }
 
-            Direction side = bestSide != null ? bestSide : BlockUtil.getClickSide(pos);
-            if (side == null) return;
-
-            BlockPos neighbor = pos.offset(side);
-            Direction opp = side.getOpposite();
-
-            Vec3d hitVec = neighbor.toCenterPos().add(
-                opp.getVector().getX() * 0.5,
-                0.9,
-                opp.getVector().getZ() * 0.5
-            );
-
-            clickBlock(neighbor, opp, false, true, hitVec);
-        } else {
-               Direction bestSide = null;
-               double maxDist = -1.0;
-
-               for (Direction side : Direction.values()) {
-                   if (side == Direction.UP || side == Direction.DOWN) continue;
-                   double dist = getDistanceToWall(target, side);
-                   if (dist > maxDist) {
-                       maxDist = dist;
-                       bestSide = side;
-                   }
-               }
-
-               if (bestSide != null) {
-                   BlockPos neighbor = pos.offset(bestSide);
-                   if (BlockUtil.canClick(neighbor) && !BlockUtil.canReplace(neighbor)) {
-                        Direction side = bestSide.getOpposite();
-                        Vec3d hitVec = neighbor.toCenterPos().add(
-                            side.getVector().getX() * 0.5,
-                            0.9,
-                            side.getVector().getZ() * 0.5
-                        );
-                        clickBlock(neighbor, side, rotate, packet, hitVec);
-                        return;
-                   }
-               }
+            if (bestSide != null) {
+                BlockPos neighbor = pos.offset(bestSide);
+                if (BlockUtil.canClick(neighbor) && !BlockUtil.canReplace(neighbor)) {
+                    Direction side = bestSide.getOpposite();
+                    Vec3d hitVec = neighbor.toCenterPos().add(
+                        side.getVector().getX() * 0.5,
+                        0.9,
+                        side.getVector().getZ() * 0.5
+                    );
+                    clickBlock(neighbor, side, rotate, packet, hitVec);
+                    return true;
+                }
+            }
 
             bestSide = null;
             BlockPos bestNeighbor = null;
 
             if (BlockUtil.canClick(pos.up()) && !BlockUtil.canReplace(pos.up())) {
-                 bestSide = Direction.DOWN;
-                 bestNeighbor = pos.up();
+                bestSide = Direction.DOWN;
+                bestNeighbor = pos.up();
             }
 
             if (bestSide == null) {
@@ -483,21 +563,42 @@ public class AutoDoor2 extends Module {
                 }
             }
 
-            if (bestSide != null) {
-                 Vec3d hitVec;
-                 if (bestSide == Direction.DOWN) {
-                     hitVec = bestNeighbor.toCenterPos().add(0, -0.5, 0);
-                 } else {
-                     hitVec = bestNeighbor.toCenterPos().add(
-                         bestSide.getVector().getX() * 0.5,
-                         0.9,
-                         bestSide.getVector().getZ() * 0.5
-                     );
-                 }
+            // 如果没找到有效面但有玩家在位置，强制放置
+            if (bestSide == null && playerAtPos) {
+                // 尝试寻找任意有效的水平面
+                for (Direction side : Direction.values()) {
+                    if (side == Direction.UP || side == Direction.DOWN) continue;
+                    BlockPos neighbor = pos.offset(side);
+                    if (!mc.world.isAir(neighbor) && !BlockUtil.canReplace(neighbor)) {
+                        bestSide = side.getOpposite();
+                        bestNeighbor = neighbor;
+                        break;
+                    }
+                }
+                // 如果还是没有，使用默认值
+                if (bestSide == null) {
+                    bestSide = Direction.DOWN;
+                    bestNeighbor = pos.up();
+                }
+            }
 
-                 clickBlock(bestNeighbor, bestSide, rotate, packet, hitVec);
+            if (bestSide != null) {
+                Vec3d hitVec;
+                if (bestSide == Direction.DOWN) {
+                    hitVec = bestNeighbor.toCenterPos().add(0, -0.5, 0);
+                } else {
+                    hitVec = bestNeighbor.toCenterPos().add(
+                        bestSide.getVector().getX() * 0.5,
+                        0.9,
+                        bestSide.getVector().getZ() * 0.5
+                    );
+                }
+
+                clickBlock(bestNeighbor, bestSide, rotate, packet, hitVec);
+                return true;
             }
         }
+        return false;
     }
 
     private void clickBlock(BlockPos pos, Direction side, boolean rotate, boolean packet, Vec3d hitVec) {

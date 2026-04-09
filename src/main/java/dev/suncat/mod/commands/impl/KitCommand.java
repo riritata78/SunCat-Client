@@ -37,7 +37,6 @@ public class KitCommand extends Command {
                     if (AutoRegear.INSTANCE != null) {
                         AutoRegear.INSTANCE.currentKitName = parameters[1];
                     }
-                    this.sendChatMessage("§a[Kit] §7已加载 Kit: §f" + parameters[1]);
                 } else {
                     this.sendUsage();
                 }

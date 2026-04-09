@@ -346,13 +346,17 @@ extends Button {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
             this.resetSettingsToDefault();
             ModuleButton.sound();
-            return;
+            return true;
         }
-        super.mouseClicked(mouseX, mouseY, mouseButton);
+        if (mouseButton == 0 && this.isHovering(mouseX, mouseY)) {
+            this.toggle();
+            ModuleButton.sound();
+            return true;
+        }
         if (!this.items.isEmpty()) {
             if (mouseButton == 1 && this.isHovering(mouseX, mouseY)) {
                 this.subOpen = !this.subOpen;
@@ -364,14 +368,18 @@ extends Button {
                     }
                 }
                 ModuleButton.sound();
+                return true;
             }
             if (this.subOpen) {
                 for (Item item : this.items) {
                     if (item.isHidden()) continue;
-                    item.mouseClicked(mouseX, mouseY, mouseButton);
+                    if (item.mouseClicked(mouseX, mouseY, mouseButton)) {
+                        return true;
+                    }
                 }
             }
         }
+        return false;
     }
 
     @Override
@@ -383,6 +391,19 @@ extends Button {
                 item.onKeyTyped(typedChar, keyCode);
             }
         }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double verticalAmount) {
+        if (!this.items.isEmpty() && this.subOpen) {
+            for (Item item : this.items) {
+                if (item.isHidden()) continue;
+                if (item.mouseScrolled(mouseX, mouseY, verticalAmount)) {
+                    return true;
+                }
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, verticalAmount);
     }
 
     @Override

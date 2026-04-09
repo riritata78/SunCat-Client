@@ -77,14 +77,14 @@ extends Button {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
             this.drag = false;
             this.isListening = false;
             this.currentString = "";
             this.setting.setValue(this.setting.getDefaultValue());
             SliderButton.sound();
-            return;
+            return true;
         }
         if (this.isHovering(mouseX, mouseY)) {
             SliderButton.sound();
@@ -98,7 +98,9 @@ extends Button {
             } else if (mouseButton == 1) {
                 this.toggle();
             }
+            return true;
         }
+        return false;
     }
 
     @Override

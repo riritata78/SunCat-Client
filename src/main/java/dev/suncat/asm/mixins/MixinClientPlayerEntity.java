@@ -159,6 +159,19 @@ extends AbstractClientPlayerEntity {
         }
     }
 
+    @Inject(method={"move"}, at={@At(value="HEAD")}, cancellable=true)
+    private void onMoveHead(MovementType movementType, Vec3d movement, CallbackInfo ci) {
+        MoveEvent event = MoveEvent.get(movement.x, movement.y, movement.z);
+        suncat.EVENT_BUS.post(event);
+        if (event.isCancelled()) {
+            ci.cancel();
+        } else if (event.modify) {
+            ci.cancel();
+            super.move(movementType, new Vec3d(event.getX(), event.getY(), event.getZ()));
+            suncat.EVENT_BUS.post(MovedEvent.INSTANCE);
+        }
+    }
+
     @Inject(method={"move"}, at={@At(value="INVOKE", target="Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V")}, cancellable=true)
     public void onMoveHook(MovementType movementType, Vec3d movement, CallbackInfo ci) {
         MoveEvent event = MoveEvent.get(movement.x, movement.y, movement.z);
@@ -265,22 +278,31 @@ extends AbstractClientPlayerEntity {
                 double d = x - this.lastX;
                 double e = y - this.lastBaseY;
                 double f = z - this.lastZ;
-                double g = yaw - this.lastYaw;
-                double h = pitch - this.lastPitch;
+
+                // 应用服务器旋转
+                float sendYaw = yaw;
+                float sendPitch = pitch;
+                if (RotationManager.hasServerRotation()) {
+                    sendYaw = RotationManager.serverYaw;
+                    sendPitch = RotationManager.serverPitch;
+                }
+
+                double g = sendYaw - this.lastYaw;
+                double h = sendPitch - this.lastPitch;
                 ++this.ticksSinceLastPositionPacketSent;
                 boolean bl2 = MathHelper.squaredMagnitude(d, e, f) > MathHelper.square(2.0E-4) || this.ticksSinceLastPositionPacketSent >= 20;
                 boolean bl3 = g != 0.0 || h != 0.0;
-                
+
                 if (this.hasVehicle()) {
                     Vec3d vec3d = this.getVelocity();
-                    this.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(vec3d.x, -999.0, vec3d.z, this.getYaw(), this.getPitch(), ground));
+                    this.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(vec3d.x, -999.0, vec3d.z, sendYaw, sendPitch, ground));
                     bl2 = false;
                 } else if (bl2 && bl3) {
-                    this.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(x, y, z, yaw, pitch, ground));
+                    this.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(x, y, z, sendYaw, sendPitch, ground));
                 } else if (bl2) {
                     this.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(x, y, z, ground));
                 } else if (bl3) {
-                    this.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, ground));
+                    this.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(sendYaw, sendPitch, ground));
                 } else if (this.lastOnGround != ground) {
                     this.networkHandler.sendPacket(new PlayerMoveC2SPacket.OnGroundOnly(ground));
                 }
@@ -291,8 +313,8 @@ extends AbstractClientPlayerEntity {
                     this.ticksSinceLastPositionPacketSent = 0;
                 }
                 if (bl3) {
-                    this.lastYaw = yaw;
-                    this.lastPitch = pitch;
+                    this.lastYaw = sendYaw;
+                    this.lastPitch = sendPitch;
                 }
                 this.lastOnGround = ground;
             }
@@ -330,13 +352,9 @@ extends AbstractClientPlayerEntity {
             }
         }
 
-        // EFly Grim mode - override onGround status
-        if (dev.suncat.mod.modules.impl.movement.EFly.INSTANCE != null &&
-            dev.suncat.mod.modules.impl.movement.EFly.INSTANCE.isOn() &&
-            dev.suncat.mod.modules.impl.movement.EFly.INSTANCE.mode.is(dev.suncat.mod.modules.impl.movement.EFly.Mode.Grim) &&
-            this.isFallFlying()) {
-            this.setOnGround(false);
-        }
+        if (dev.suncat.mod.modules.impl.movement.EFly.isStandingFly() && this.isFallFlying()) {
+    this.setOnGround(false);
+}
     }
 
     @Inject(method={"tick"}, at={@At(value="INVOKE", target="Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V", ordinal=0)})
@@ -353,7 +371,17 @@ extends AbstractClientPlayerEntity {
         this.preZ = this.getZ();
         this.preYaw = this.getYaw();
         this.prePitch = this.getPitch();
-        SendMovementPacketsEvent event = SendMovementPacketsEvent.get(this.getX(), this.getY(), this.getZ(), this.getYaw(), this.getPitch());
+
+        float yaw = this.getYaw();
+        float pitch = this.getPitch();
+
+        // 应用服务器旋转（如 EFly 的转头）
+        if (RotationManager.hasServerRotation()) {
+            yaw = RotationManager.serverYaw;
+            pitch = RotationManager.serverPitch;
+        }
+
+        SendMovementPacketsEvent event = SendMovementPacketsEvent.get(this.getX(), this.getY(), this.getZ(), yaw, pitch);
         suncat.EVENT_BUS.post(event);
         suncat.ROTATION.rotationYaw = event.getYaw();
         suncat.ROTATION.rotationPitch = event.getPitch();

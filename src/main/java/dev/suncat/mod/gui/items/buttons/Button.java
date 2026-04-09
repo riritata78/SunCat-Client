@@ -49,10 +49,12 @@ extends Item {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY)) {
             this.onMouseClick();
+            return true;
         }
+        return false;
     }
 
     public void onMouseClick() {

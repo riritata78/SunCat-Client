@@ -182,12 +182,30 @@ public class Follower extends Module {
             return;
         }
 
+        // 检测玩家是否有主动输入（WASD/跳跃/潜行），如果有则不覆盖移动
+        boolean hasPlayerInput = mc.player.input.movementForward != 0 ||
+                                 mc.player.input.movementSideways != 0 ||
+                                 mc.options.jumpKey.isPressed() ||
+                                 mc.options.sneakKey.isPressed();
+        if (hasPlayerInput) {
+            return; // 玩家有输入时不抢移动控制
+        }
+
+        // 地面检测：如果开启 preventGround 且目标在地面上，停止跟随
+        if (this.preventGround.getValue() && this.target.isOnGround()) {
+            // 目标在地面上，停止移动并悬停
+            if (mc.player.isFallFlying()) {
+                event.setX(0.0);
+                event.setY(0.0);
+                event.setZ(0.0);
+                return;
+            }
+        }
+
         // Handle movement - check if fall flying for elytra mode
         if (mc.player.isFallFlying()) {
             // Elytra flight mode - directly set movement
             this.moveTowardsWithFly(event, this.target.getPos());
-            // Debug message
-            // this.sendMessage("§bMoving to target: " + this.target.getName().getString());
         } else {
             // Ground movement mode
             this.moveTowards(event, this.target.getPos());
@@ -239,10 +257,18 @@ public class Follower extends Module {
 
         // Handle prevent ground
         if (mc.player.isFallFlying()) {
-            if (this.preventGround.getValue() && !this.target.isOnGround()) {
-                event.setYaw(rotations[0]);
-                event.setPitch(rotations[1]);
-            } else if (!this.preventGround.getValue()) {
+            if (this.preventGround.getValue()) {
+                // 如果目标在地面上，抬头往上看，防止降落
+                if (this.target.isOnGround()) {
+                    event.setYaw(rotations[0]);
+                    event.setPitch(-90.0f);  // 头完全往上看
+                } else {
+                    // 目标在空中，正常跟随
+                    event.setYaw(rotations[0]);
+                    event.setPitch(rotations[1]);
+                }
+            } else {
+                // 关闭 preventGround 时正常转头
                 event.setYaw(rotations[0]);
                 event.setPitch(rotations[1]);
             }
@@ -376,24 +402,37 @@ public class Follower extends Module {
         final double speed = this.flySpeed.getValueFloat();
         final double x = -Math.sin(angle) * speed;
         final double z = Math.cos(angle) * speed;
-        
+
         final double[] difference = {
             targetPos.x - mc.player.getX(),
             targetPos.y - mc.player.getY(),
             targetPos.z - mc.player.getZ()
         };
-        
+
+        // 计算水平距离
+        double horizontalDist = Math.sqrt(difference[0] * difference[0] + difference[2] * difference[2]);
+
+        // 如果距离目标很近（2格内），减少移动
+        if (horizontalDist < 2.0) {
+            event.setX(0.0);
+            event.setZ(0.0);
+            event.setY(0.0);
+            return;
+        }
+
         final double motionX = (Math.abs(x) < Math.abs(difference[0])) ? x : difference[0];
         final double motionZ = (Math.abs(z) < Math.abs(difference[2])) ? z : difference[2];
-        
+
         double motionY = 0.0;
-        if (Math.abs(difference[1]) > 0.1) {
+        // 只在高度差较大时才调整 Y 轴
+        if (Math.abs(difference[1]) > 1.0) {
             motionY = ((difference[1] > 0.0) ? this.verticalSpeed.getValueFloat() : (-this.verticalSpeed.getValueFloat()));
-            if (Math.abs(difference[1]) < this.verticalSpeed.getValueFloat()) {
-                motionY = difference[1];
+            // 接近目标高度时减少 Y 轴移动
+            if (Math.abs(difference[1]) < this.verticalSpeed.getValueFloat() * 2) {
+                motionY = difference[1] * 0.5;
             }
         }
-        
+
         event.setX(motionX);
         event.setY(motionY);
         event.setZ(motionZ);

@@ -258,7 +258,7 @@ extends Button {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY) && InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)340)) {
             this.pickingColor = false;
             this.pickingHue = false;
@@ -269,7 +269,7 @@ extends Button {
                 this.setting.booleanValue = this.setting.getDefaultBooleanValue();
             }
             PickerButton.sound();
-            return;
+            return true;
         }
         if (mouseButton == 0) {
             int pickerX = (int)this.x;
@@ -283,25 +283,31 @@ extends Button {
             int hueSliderY = alphaSliderY + alphaSliderHeight + 1;
             if (PickerButton.mouseOver(pickerX, pickerY, pickerX + pickerWidth, pickerY + pickerHeight, mouseX, mouseY)) {
                 this.pickingColor = true;
+                return true;
             }
             if (PickerButton.mouseOver(pickerX, hueSliderY, pickerX + hueSliderWidth, hueSliderY + hueSliderHeight, mouseX, mouseY)) {
                 this.pickingHue = true;
+                return true;
             }
             if (PickerButton.mouseOver(pickerX, alphaSliderY, pickerX + pickerWidth, alphaSliderY + alphaSliderHeight, mouseX, mouseY)) {
                 this.pickingAlpha = true;
+                return true;
             }
         }
         if (this.isHovering(mouseX, mouseY)) {
             if (mouseButton == 1) {
                 PickerButton.sound();
                 this.open = !this.open;
+                return true;
             } else if (mouseButton == 0 && this.setting.injectBoolean) {
                 PickerButton.sound();
                 boolean bl = this.setting.booleanValue = !this.setting.booleanValue;
+                return true;
             }
         }
         if (mouseButton == 0 && this.isInsideRainbow(mouseX, mouseY) && this.open) {
             boolean bl = this.setting.rainbow = !this.setting.rainbow;
+            return true;
         }
         if (mouseButton == 0 && this.isInsideCopy(mouseX, mouseY) && this.open) {
             PickerButton.sound();
@@ -310,6 +316,7 @@ extends Button {
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             clipboard.setContents(selection, selection);
             CommandManager.sendMessage("Copied the color to your clipboard.");
+            return true;
         }
         if (mouseButton == 0 && this.isInsidePaste(mouseX, mouseY) && this.open) {
             try {
@@ -332,7 +339,9 @@ extends Button {
                 CommandManager.sendMessage("\u00a74Bad color format! Use Hex (#FFFFFFFF)");
                 this.setting.setValue(-1);
             }
+            return true;
         }
+        return false;
     }
 
     @Override

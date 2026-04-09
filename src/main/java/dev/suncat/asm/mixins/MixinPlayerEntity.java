@@ -34,14 +34,34 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value={PlayerEntity.class})
-public class MixinPlayerEntity
-implements Wrapper {
+public abstract class MixinPlayerEntity implements Wrapper {
+
+    // 【关键修复】删除之前报错的 @Shadow canChangeIntoPose
+    // 我们改用 Inject 头部拦截，这样就不需要调用那个报错的方法了
+
+    @Inject(method = "updatePose", at = @At("HEAD"), cancellable = true)
+    private void onUpdatePose(CallbackInfo ci) {
+        // 只有是本地玩家且开启站立飞行时才拦截
+        if ((Object) this == MinecraftClient.getInstance().player
+            && dev.suncat.mod.modules.impl.movement.EFly.isStandingFly()) {
+
+            // 这里的 (PlayerEntity)(Object)this 是为了能调用 setPose 方法
+            // setPose 是 Entity 类的公共方法，PlayerEntity 继承了它，所以这样写不会崩
+            ((PlayerEntity)(Object)this).setPose(EntityPose.STANDING);
+
+            // 直接取消原版方法的执行，原版就不会再去判断是否该"趴下"了
+            ci.cancel();
+        }
+    }
+
     @Inject(method={"canChangeIntoPose"}, at={@At(value="RETURN")}, cancellable=true)
     private void poseNotCollide(EntityPose pose, CallbackInfoReturnable<Boolean> cir) {
-        if (PlayerEntity.class.cast(this) == MixinPlayerEntity.mc.player && !ClientSetting.INSTANCE.crawl.getValue() && pose == EntityPose.SWIMMING) {
+        if ((Object) this == MinecraftClient.getInstance().player && !ClientSetting.INSTANCE.crawl.getValue() && pose == EntityPose.SWIMMING) {
             cir.setReturnValue(false);
         }
     }
+
+    // --- 以下是你的其他代码，保持不变 ---
 
     @Inject(method={"getBlockInteractionRange"}, at={@At(value="HEAD")}, cancellable=true)
     public void getBlockInteractionRangeHook(CallbackInfoReturnable<Double> cir) {
@@ -69,51 +89,19 @@ implements Wrapper {
 
     @Inject(method={"travel"}, at={@At(value="HEAD")}, cancellable=true)
     private void onTravelPre(Vec3d movementInput, CallbackInfo ci) {
-        PlayerEntity player = (PlayerEntity)PlayerEntity.class.cast(this);
-        if (player != MixinPlayerEntity.mc.player) {
-            return;
-        }
-        TravelEvent event = TravelEvent.get(Event.Stage.Pre, player);
+        if ((Object) this != MinecraftClient.getInstance().player) return;
+        TravelEvent event = TravelEvent.get(Event.Stage.Pre, (PlayerEntity)(Object)this);
         suncat.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
-            event = TravelEvent.get(Event.Stage.Post, player);
-            suncat.EVENT_BUS.post(event);
+            suncat.EVENT_BUS.post(TravelEvent.get(Event.Stage.Post, (PlayerEntity)(Object)this));
         }
     }
 
     @Inject(method={"travel"}, at={@At(value="RETURN")})
     private void onTravelPost(Vec3d movementInput, CallbackInfo ci) {
-        PlayerEntity player = (PlayerEntity)PlayerEntity.class.cast(this);
-        if (player != MixinPlayerEntity.mc.player) {
-            return;
-        }
-        TravelEvent event = TravelEvent.get(Event.Stage.Post, player);
-        suncat.EVENT_BUS.post(event);
+        if ((Object) this != MinecraftClient.getInstance().player) return;
+        suncat.EVENT_BUS.post(TravelEvent.get(Event.Stage.Post, (PlayerEntity)(Object)this));
     }
-
-    // 禁用此 mixin 以防止视角抽搐 - 它与 MixinClientPlayerEntity 的旋转逻辑冲突
-    /*
-    @Inject(method={"tickNewAi"}, at={@At(value="FIELD", target="Lnet/minecraft/entity/player/PlayerEntity;headYaw:F")})
-    public void updateHeadRotation(CallbackInfo ci) {
-        PlayerEntity player = (PlayerEntity)PlayerEntity.class.cast(this);
-        if (player != MinecraftClient.getInstance().player) {
-            return;
-        }
-
-        float yaw = player.getYaw();
-        float pitch = player.getPitch();
-
-        // Apply module rotation to head for visual sync
-        if (RotationManager.INSTANCE.getRotation() != null) {
-            yaw = RotationManager.INSTANCE.getRotation().yaw;
-            pitch = RotationManager.INSTANCE.getRotation().pitch;
-        }
-
-        // Set head rotation for visual rendering
-        ((ILivingEntity) player).setHeadYaw(yaw);
-        player.setPitch(pitch);
-    }
-    */
 }
 

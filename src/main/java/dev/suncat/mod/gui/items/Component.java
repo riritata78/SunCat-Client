@@ -223,7 +223,7 @@ extends Mod {
         }
     }
 
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton == 0 && this.isHovering(mouseX, mouseY)) {
             if (ClickGui.getInstance().mouseMove.getValue()) {
                 this.setX(this.getX());
@@ -243,17 +243,23 @@ extends Mod {
                 }
             });
             this.drag = true;
-            return;
+            return true;
         }
         if (mouseButton == 1 && this.isHovering(mouseX, mouseY)) {
             this.open = !this.open;
             Item.sound();
-            return;
+            return true;
         }
         if (!this.open) {
-            return;
+            return false;
         }
-        this.getItems().forEach(item -> item.mouseClicked(mouseX, mouseY, mouseButton));
+        for (Item item : this.getItems()) {
+            if (item.isHidden()) continue;
+            if (item.mouseClicked(mouseX, mouseY, mouseButton)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void mouseReleased(int mouseX, int mouseY, int releaseButton) {
@@ -264,6 +270,19 @@ extends Mod {
             return;
         }
         this.getItems().forEach(item -> item.mouseReleased(mouseX, mouseY, releaseButton));
+    }
+
+    public boolean mouseScrolled(double mouseX, double mouseY, double verticalAmount) {
+        if (!this.open) {
+            return false;
+        }
+        for (Item item : this.getItems()) {
+            if (item.isHidden()) continue;
+            if (item.mouseScrolled(mouseX, mouseY, verticalAmount)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void onKeyTyped(char typedChar, int keyCode) {

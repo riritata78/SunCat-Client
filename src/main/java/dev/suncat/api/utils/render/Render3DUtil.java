@@ -138,7 +138,7 @@ implements Wrapper {
         float keyCodec;
         box = box.offset(Render3DUtil.mc.gameRenderer.getCamera().getPos().negate());
         RenderSystem.enableBlend();
-        RenderSystem.disableDepthTest();
+        // 注意：这里不再禁用深度测试，由调用者控制
         Matrix4f matrix = matrixStack.peek().getPositionMatrix();
         if (outline) {
             keyCodec = (float)outlineColor.getAlpha() / 255.0f;
@@ -207,13 +207,13 @@ implements Wrapper {
             bufferBuilder.vertex(matrix, (float)box.minX, (float)box.maxY, (float)box.minZ).color(r, g, elementCodec, keyCodec);
             BufferRenderer.drawWithGlobalProgram((BuiltBuffer)bufferBuilder.end());
         }
-        RenderSystem.enableDepthTest();
+        // 注意：这里不再恢复深度测试，由调用者控制
         RenderSystem.disableBlend();
     }
 
     public static void drawFadeFill(MatrixStack stack, Box box, Color c, Color c1) {
         RenderSystem.enableBlend();
-        RenderSystem.disableDepthTest();
+        // 注意：这里不再禁用深度测试，由调用者控制
         RenderSystem.disableCull();
         RenderSystem.setShader(GameRenderer::getPositionColorProgram);
         BufferBuilder buffer = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);

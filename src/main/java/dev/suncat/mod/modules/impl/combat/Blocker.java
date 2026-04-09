@@ -18,6 +18,7 @@ import dev.suncat.api.utils.player.EntityUtil;
 import dev.suncat.api.utils.player.InventoryUtil;
 import dev.suncat.api.utils.world.BlockPosX;
 import dev.suncat.api.utils.world.BlockUtil;
+import dev.suncat.core.impl.ThreadManager;
 import dev.suncat.mod.modules.Module;
 import dev.suncat.mod.modules.impl.client.AntiCheat;
 import dev.suncat.mod.modules.impl.exploit.Blink;
@@ -54,6 +55,7 @@ extends Module {
     private final BooleanSetting inAirPause = this.add(new BooleanSetting("InAirPause", false, () -> this.page.getValue() == Page.Check));
     private final BooleanSetting detectMining = this.add(new BooleanSetting("DetectMining", true, () -> this.page.getValue() == Page.Check));
     private final BooleanSetting eatingPause = this.add(new BooleanSetting("EatingPause", true, () -> this.page.getValue() == Page.Check));
+    private final BooleanSetting asynchronous = this.add(new BooleanSetting("Asynchronous", true, () -> this.page.getValue() == Page.General));
     private int placeProgress = 0;
     private BlockPos playerBP;
 
@@ -65,8 +67,6 @@ extends Module {
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
-        BlockPos blockerPos;
-        this.list.clear();
         if (this.inventorySwap.getValue() && !EntityUtil.inInventory()) {
             return;
         }
@@ -79,6 +79,23 @@ extends Module {
         if (this.eatingPause.getValue() && Blocker.mc.player.isUsingItem()) {
             return;
         }
+
+        Runnable placeTask = this::calculateAndPlace;
+
+        if (this.asynchronous.getValue()) {
+            ThreadManager.EXECUTOR.submit(placeTask);
+        } else {
+            placeTask.run();
+        }
+    }
+
+    private synchronized void calculateAndPlace() {
+        if (Blocker.mc.player == null || Blocker.mc.world == null) {
+            return;
+        }
+
+        BlockPos blockerPos;
+        this.list.clear();
         this.placeProgress = 0;
         if (this.playerBP != null && !this.playerBP.equals((Object)EntityUtil.getPlayerPos(true))) {
             this.placePos.clear();

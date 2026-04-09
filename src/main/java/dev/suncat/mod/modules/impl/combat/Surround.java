@@ -77,6 +77,8 @@ public class Surround extends Module
     private List<BlockPos> surroundBlocks;
     private Map<BlockPos, Long> placedPackets;
     private int blocksPlacedThisTick;
+    private boolean initialBurst;
+    private long enableTime;
     
     public Surround() {
         super("Surround", "Surrounds you with Obsidian", Category.Combat);
@@ -185,7 +187,10 @@ public class Surround extends Module
         if ((this.timingMode.getValue() == TimingMode.Pre && event.isPost()) || (this.timingMode.getValue() == TimingMode.Post && event.isPre())) {
             return;
         }
-        if (!this.timer.passed((long)this.placeDelay.getValue())) {
+        if (this.initialBurst && System.currentTimeMillis() - this.enableTime > 500) {
+            this.initialBurst = false;
+        }
+        if (!this.initialBurst && !this.timer.passed((long)this.placeDelay.getValue())) {
             return;
         }
         this.directionVec = null;
@@ -356,7 +361,8 @@ public class Surround extends Module
             return false;
         }
         final Long placedTime = this.placedPackets.get(pos);
-        return (placedTime == null || this.shiftDelay.getValueFloat() <= 0.0f || System.currentTimeMillis() - placedTime >= (long)(this.shiftDelay.getValueFloat() * 50.0f)) && this.blocksPlacedThisTick < this.blocksPerTick.getValue();
+        int maxBlocks = this.initialBurst ? 8 : (int)this.blocksPerTick.getValue();
+        return (placedTime == null || this.shiftDelay.getValueFloat() <= 0.0f || System.currentTimeMillis() - placedTime >= (long)(this.shiftDelay.getValueFloat() * 50.0f)) && this.blocksPlacedThisTick < maxBlocks;
     }
     
     @Override
@@ -373,6 +379,8 @@ public class Surround extends Module
         this.shouldCenter = true;
         this.surroundBlocks.clear();
         this.placedPackets.clear();
+        this.initialBurst = true;
+        this.enableTime = System.currentTimeMillis();
     }
     
     @Override

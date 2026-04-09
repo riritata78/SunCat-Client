@@ -60,6 +60,7 @@ extends Module {
     private final BooleanSetting gapOnTotem = this.add(new BooleanSetting("Gap-Totem", false, this.gapSwitch::isOpen));
     private final BooleanSetting gapOnSword = this.add(new BooleanSetting("Gap-Sword", true, this.gapSwitch::isOpen));
     private final BooleanSetting gapOnPick = this.add(new BooleanSetting("Gap-Pickaxe", false, this.gapSwitch::isOpen));
+    private final BooleanSetting ignoreMainHand = this.add(new BooleanSetting("IgnoreMainHand", false, this.gapSwitch::isOpen));
     private final BooleanSetting mainHandTotem = this.add(new BooleanSetting("MainHandTotem", false).setParent());
     private final SliderSetting slot = this.add(new SliderSetting("Slot", 1.0, 1.0, 9.0, 1.0, this.mainHandTotem::isOpen));
     private final BooleanSetting forceUpdate = this.add(new BooleanSetting("ForceUpdate", false, this.mainHandTotem::isOpen));
@@ -169,10 +170,18 @@ extends Module {
                 InventoryUtil.switchToSlot(hotBarSlot);
             }
         }
-        if ((this.gapOnSword.getValue() && Offhand.mc.player.getMainHandStack().getItem() instanceof SwordItem || this.always.getValue() && Offhand.mc.player.getMainHandStack().getItem() != Items.GOLDEN_APPLE && Offhand.mc.player.getMainHandStack().getItem() != Items.ENCHANTED_GOLDEN_APPLE || this.gapOnPick.getValue() && Offhand.mc.player.getMainHandStack().getItem() instanceof PickaxeItem || this.gapOnTotem.getValue() && Offhand.mc.player.getMainHandStack().getItem() == Items.TOTEM_OF_UNDYING) && Offhand.mc.options.useKey.isPressed() && this.gapSwitch.getValue()) {
-            this.swap(Items.GOLDEN_APPLE);
-            this.timer.reset();
-            return;
+        if (this.gapSwitch.getValue() && Offhand.mc.options.useKey.isPressed()) {
+            ItemStack mainHandStack = Offhand.mc.player.getMainHandStack();
+            boolean shouldGap = this.ignoreMainHand.getValue()
+                || this.gapOnSword.getValue() && mainHandStack.getItem() instanceof SwordItem
+                || this.always.getValue() && mainHandStack.getItem() != Items.GOLDEN_APPLE && mainHandStack.getItem() != Items.ENCHANTED_GOLDEN_APPLE
+                || this.gapOnPick.getValue() && mainHandStack.getItem() instanceof PickaxeItem
+                || this.gapOnTotem.getValue() && mainHandStack.getItem() == Items.TOTEM_OF_UNDYING;
+            if (shouldGap) {
+                this.swap(Items.GOLDEN_APPLE);
+                this.timer.reset();
+                return;
+            }
         }
         EnumSetting<OffhandItem> item = this.item;
         OffhandItem i = item.getValue();

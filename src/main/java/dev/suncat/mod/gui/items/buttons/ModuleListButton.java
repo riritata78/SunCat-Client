@@ -85,28 +85,26 @@ public class ModuleListButton extends Button {
     }
 
     @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (this.isHovering(mouseX, mouseY)) {
             if (mouseButton == 1) {
                 this.open = !this.open;
                 ModuleListButton.sound();
-                return;
+                return true;
             }
         }
-        
+
         if (this.open && suncat.MODULE != null) {
             int y = (int) (this.y + this.height);
             int moduleHeight = 14;
             List<Module> modules = new ArrayList<>(suncat.MODULE.getModules());
-            
+
             for (Module module : modules) {
                 if (ModuleListButton.mouseOver(this.x, y, this.x + (float)this.width, y + moduleHeight, mouseX, mouseY)) {
                     if (mouseButton == 0) {
-                        // Left click: toggle hidden status
                         this.setting.toggle(module);
                         ModuleListButton.sound();
                     } else if (mouseButton == 1) {
-                        // Right click: toggle module state
                         if (module.isOn()) {
                             module.disable();
                         } else {
@@ -114,11 +112,12 @@ public class ModuleListButton extends Button {
                         }
                         ModuleListButton.sound();
                     }
-                    return;
+                    return true;
                 }
                 y += moduleHeight;
             }
         }
+        return false;
     }
 
     public static boolean mouseOver(float x1, float y1, float x2, float y2, int mx, int my) {

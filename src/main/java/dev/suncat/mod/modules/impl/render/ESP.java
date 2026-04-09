@@ -81,6 +81,9 @@ extends Module {
     public final BooleanSetting count = this.add(new BooleanSetting("Count", true, this.item::isOpen));
     private final ColorSetting text = this.add(new ColorSetting("Text", new Color(255, 255, 255, 255), this.item::isOpen));
     public final BooleanSetting pearl = this.add(new BooleanSetting("PearlOwner", true));
+    
+    // 新增：深度测试设置
+    public final BooleanSetting throughWalls = this.add(new BooleanSetting("ThroughWalls", true));
 
     public ESP() {
         super("ESP", Module.Category.Render);
@@ -93,6 +96,12 @@ extends Module {
         if (this.mode.getValue() == RenderMode.TwoD) {
             return;
         }
+        
+        // 根据 ThroughWalls 设置控制深度测试
+        if (this.throughWalls.getValue()) {
+            com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
+        }
+        
         if (this.item.getValue()) {
             for (Entity entity : suncat.THREAD.getEntities()) {
                 if (!(entity instanceof ItemEntity)) continue;
@@ -140,6 +149,11 @@ extends Module {
                 box = new Box(blockEntity.getPos());
                 Render3DUtil.draw3DBox(matrixStack, box, this.endPortalFill.getValue(), this.endPortalOutline.getValue(), this.endPortalOutline.booleanValue, this.endPortalFill.booleanValue);
             }
+        }
+        
+        // 恢复深度测试
+        if (this.throughWalls.getValue()) {
+            com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();
         }
     }
 
