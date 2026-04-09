@@ -38,6 +38,8 @@ extends Module {
     public final BooleanSetting blindnessPause = this.add(new BooleanSetting("BlindnessPause", false));
     public final BooleanSetting usingPause = this.add(new BooleanSetting("UsingPause", false));
     public final BooleanSetting lagPause = this.add(new BooleanSetting("LagPause", true));
+    // Rage 模式设置（参考 Sn0w）
+    public final BooleanSetting rageRotate = this.add(new BooleanSetting("Rotate", false, () -> this.mode.is(Mode.Rage)));
     boolean pause = false;
 
     public Sprint() {
@@ -127,14 +129,21 @@ extends Module {
                     }
                     return HoleSnap.INSTANCE.isOn() || Sprint.mc.options.forwardKey.isPressed() && MathHelper.angleBetween((float)Sprint.mc.player.getYaw(), (float)suncat.ROTATION.rotationYaw) < 40.0f;
                 }
+                case 2: {
+                    // Rage 模式：参考 Sn0w 的实现
+                    if (this.rageRotate.getValue()) {
+                        // 如果开启了 Rotate，使用 Vanilla 逻辑（需要面朝前方才冲刺）
+                        return Sprint.mc.player.input.hasForwardMovement() && (!Sprint.mc.player.horizontalCollision || Sprint.mc.player.collidedSoftly);
+                    } else {
+                        // 没开 Rotate，直接冲刺
+                        return true;
+                    }
+                }
                 case 3: {
                     if (AntiCheat.INSTANCE.movementSync()) {
                         return Sprint.mc.player.input.movementForward > 0.0f;
                     }
                     return HoleSnap.INSTANCE.isOn() || MathHelper.angleBetween((float)Sprint.getSprintYaw(Sprint.mc.player.getYaw()), (float)suncat.ROTATION.rotationYaw) < 40.0f;
-                }
-                case 2: {
-                    return true;
                 }
             }
         }
@@ -147,6 +156,10 @@ extends Module {
             return;
         }
         if (!((Sprint.mc.player.getHungerManager().getFoodLevel() <= 6 && !Sprint.mc.player.isCreative() || !MovementUtil.isMoving() || Freecam.INSTANCE.isOn() || Sprint.mc.player.isFallFlying() || suncat.PLAYER.isInWeb((PlayerEntity)Sprint.mc.player) && this.inWebPause.getValue() || Sprint.mc.player.isSneaking() && this.sneakingPause.getValue() || Sprint.mc.player.isRiding() || Sprint.mc.player.isUsingItem() && this.usingPause.getValue() || Sprint.mc.player.isInFluid() || !Freecam.INSTANCE.isOff() || Sprint.mc.player.hasStatusEffect(StatusEffects.BLINDNESS)) && this.blindnessPause.getValue() || !this.mode.is(Mode.Rotation) || event.isModified())) {
+            event.setYaw(Sprint.getSprintYaw(Sprint.mc.player.getYaw()));
+        }
+        // Rage 模式：参考 Sn0w 的实现，开启 Rotate 时自动转头到移动方向
+        if (this.mode.is(Mode.Rage) && this.rageRotate.getValue() && !event.isModified() && Sprint.mc.currentScreen == null && MovementUtil.isMoving()) {
             event.setYaw(Sprint.getSprintYaw(Sprint.mc.player.getYaw()));
         }
     }
