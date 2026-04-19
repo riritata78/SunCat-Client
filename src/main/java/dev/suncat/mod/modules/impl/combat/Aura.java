@@ -39,7 +39,7 @@ import dev.suncat.asm.accessors.IEntity;
 import dev.suncat.asm.accessors.ILivingEntity;
 import dev.suncat.mod.modules.Module;
 import dev.suncat.mod.modules.impl.exploit.Blink;
-import dev.suncat.mod.modules.impl.movement.ElytraFly;
+import dev.suncat.mod.modules.impl.movement.EFly;
 import dev.suncat.mod.modules.impl.movement.Velocity;
 import dev.suncat.mod.modules.settings.enums.SwingSide;
 import dev.suncat.mod.modules.settings.enums.Timing;
@@ -79,6 +79,7 @@ extends Module {
     private final SliderSetting wallRange = this.add(new SliderSetting("WallRange", 6.0, (double)0.1f, 7.0, () -> this.page.getValue() == Page.General));
     private final BooleanSetting whileEating = this.add(new BooleanSetting("WhileUsing", true, () -> this.page.getValue() == Page.General));
     private final BooleanSetting weaponOnly = this.add(new BooleanSetting("WeaponOnly", true, () -> this.page.getValue() == Page.General));
+    private final BooleanSetting silent = this.add(new BooleanSetting("Silent", false, () -> this.page.getValue() == Page.General));
     private final EnumSetting<Timing> timing = this.add(new EnumSetting<Timing>("Timing", Timing.All, () -> this.page.getValue() == Page.General));
     private final BooleanSetting Players = this.add(new BooleanSetting("Players", true, () -> this.page.getValue() == Page.Target).setParent());
     private final BooleanSetting armorLow = this.add(new BooleanSetting("ArmorLow", true, () -> this.page.getValue() == Page.Target && this.Players.isOpen()));
@@ -104,6 +105,8 @@ extends Module {
     private final SliderSetting priority = this.add(new SliderSetting("Priority", 10, 0, 100, () -> this.page.getValue() == Page.Rotate && this.yawStep.isOpen()));
     private final Timer tick = new Timer();
     public Vec3d directionVec = null;
+    private int lastSlot = -1;
+    private boolean switched = false;
 
     public Aura() {
         super("Aura", Module.Category.Combat);
@@ -232,12 +235,32 @@ extends Module {
         if (this.rotate.getValue() && !this.faceVector(hitVec = this.getAttackVec(target))) {
             return;
         }
+
+        if (this.silent.getValue()) {
+            int bestSlot = this.findBestWeaponSlot();
+            if (bestSlot != -1 && bestSlot != mc.player.getInventory().selectedSlot) {
+                this.lastSlot = mc.player.getInventory().selectedSlot;
+                // Silent mode: only send packet                mc.getNetworkHandler().sendPacket(new net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket(bestSlot));
+                this.switched = true;
+            } else {
+                this.switched = false;
+            }
+        }
+
         this.animation.to = 1.0;
         this.animation.from = 1.0;
         mc.getNetworkHandler().sendPacket((Packet)PlayerInteractEntityC2SPacket.attack((Entity)target, (boolean)Aura.mc.player.isSneaking()));
         Aura.mc.player.resetLastAttackedTicks();
         EntityUtil.swingHand(Hand.MAIN_HAND, this.swingMode.getValue());
         this.tick.reset();
+
+        // Silent
+        if (this.silent.getValue() && this.switched && this.lastSlot != -1) {
+            mc.getNetworkHandler().sendPacket(new net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket(this.lastSlot));
+            this.lastSlot = -1;
+            this.switched = false;
+        }
+
         if (this.rotate.getValue() && !this.shouldYawStep()) {
             suncat.ROTATION.snapBack();
         }
@@ -248,7 +271,7 @@ extends Module {
     }
 
     private boolean shouldYawStep() {
-        if (!this.whenElytra.getValue() && (Aura.mc.player.isFallFlying() || ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.isFallFlying())) {
+        if (!this.whenElytra.getValue() && (Aura.mc.player.isFallFlying() || EFly.isPacketFlying())) {
             return false;
         }
         return this.yawStep.getValue() && !Velocity.INSTANCE.noRotation();
@@ -271,24 +294,7 @@ extends Module {
         double getDistance = range;
         double maxHealth = 36.0;
 
-        // 优先攻击敌人列表中的玩家
-        if (dev.suncat.mod.modules.impl.combat.EnemyList.INSTANCE != null) {
-            for (Entity entity : suncat.THREAD.getEntities()) {
-                if (!(entity instanceof PlayerEntity)) continue;
-                if (!dev.suncat.mod.modules.impl.combat.EnemyList.INSTANCE.isEnemy((PlayerEntity) entity)) continue;
-                if (!CombatUtil.isValid(entity)) continue;
-
-                Vec3d hitVec = this.getAttackVec(entity);
-                if (Aura.mc.player.getEyePos().distanceTo(hitVec) > range) continue;
-
-                target = entity;
-                getDistance = Aura.mc.player.getEyePos().distanceTo(hitVec);
-                return target;
-            }
-        }
-
-        // 敌人列表中没有在线玩家，攻击普通目标
-        for (Entity entity : suncat.THREAD.getEntities()) {
+                for (Entity entity : suncat.THREAD.getEntities()) {
             if (!this.isEnemy(entity)) continue;
             Vec3d hitVec = this.getAttackVec(entity);
             if (Aura.mc.player.getEyePos().distanceTo(hitVec) > range || !Aura.mc.player.canSee(entity) && Aura.mc.player.getEyePos().distanceTo(hitVec) > this.wallRange.getValue() || !CombatUtil.isValid(entity)) continue;
@@ -333,6 +339,45 @@ extends Module {
         return false;
     }
 
+    /**
+     * 查找快杷栝中最佳的武器槽佝
+     */
+    private int findBestWeaponSlot() {
+        int netheriteSlot = -1;
+        int diamondSlot = -1;
+        int ironSlot = -1;
+        int goldenSlot = -1;
+        int stoneSlot = -1;
+        int woodenSlot = -1;
+
+        for (int i = 0; i < 9; i++) {
+            var stack = mc.player.getInventory().getStack(i);
+            if (stack.isEmpty()) continue;
+
+            if (stack.getItem() == net.minecraft.item.Items.NETHERITE_SWORD) {
+                netheriteSlot = i;
+            } else if (stack.getItem() == net.minecraft.item.Items.DIAMOND_SWORD) {
+                diamondSlot = i;
+            } else if (stack.getItem() == net.minecraft.item.Items.IRON_SWORD) {
+                ironSlot = i;
+            } else if (stack.getItem() == net.minecraft.item.Items.GOLDEN_SWORD) {
+                goldenSlot = i;
+            } else if (stack.getItem() == net.minecraft.item.Items.STONE_SWORD) {
+                stoneSlot = i;
+            } else if (stack.getItem() == net.minecraft.item.Items.WOODEN_SWORD) {
+                woodenSlot = i;
+            }
+        }
+
+        // 按优先级返回
+        if (netheriteSlot != -1) return netheriteSlot;
+        if (diamondSlot != -1) return diamondSlot;
+        if (ironSlot != -1) return ironSlot;
+        if (goldenSlot != -1) return goldenSlot;
+        if (stoneSlot != -1) return stoneSlot;
+        return woodenSlot;
+    }
+
     public static enum Page {
         General,
         Rotate,
@@ -369,4 +414,3 @@ extends Module {
 
     }
 }
-

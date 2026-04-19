@@ -20,10 +20,15 @@ public class TargetFollow extends Module {
     private final SliderSetting range = this.add(new SliderSetting("Range", 50.0, 1.0, 200.0, 1.0));
     private final BooleanSetting holdW = this.add(new BooleanSetting("HoldW", true));
     private final BooleanSetting prioritizeHeight = this.add(new BooleanSetting("PrioritizeHeight", false));
-    // 新增：高度偏移设置（砸人后先提升的高度）
-    private final SliderSetting heightOffset = this.add(new SliderSetting("HeightOffset", 3.0, 0.0, 10.0, 0.5));
-    // 新增：移动时禁用跟随
+    // 新增：高度偏移开关
+    private final BooleanSetting heightOffsetEnable = this.add(new BooleanSetting("HeightOffsetEnable", false));
+    // 新增：高度偏移设置（起飛時先提升的高度）
+    private final SliderSetting heightOffset = this.add(new SliderSetting("HeightOffset", 3.0, 0.0, 10.0, 0.5, heightOffsetEnable::getValue));
+    // 新增：移動時禁用跟隨
     private final BooleanSetting disableOnMove = this.add(new BooleanSetting("DisableOnMove", true));
+    
+    // 記錄是否已經應用高度偏移
+    private boolean hasAppliedHeightOffset = false;
 
     public TargetFollow() {
         super("TargetFollow", Category.Movement);
@@ -33,7 +38,7 @@ public class TargetFollow extends Module {
 
     @Override
     public String getInfo() {
-        if (ElytraFly.INSTANCE.isOn() && this.getClosestPlayer() != null) {
+        if ((ElytraFly.INSTANCE != null && ElytraFly.INSTANCE.isOn()) && this.getClosestPlayer() != null) {
             return suncat.ROTATION.rotationYaw + "";
         }
         return null;
@@ -42,16 +47,19 @@ public class TargetFollow extends Module {
     @Override
     public void onEnable() {
         if (nullCheck()) return;
-        if (ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.mode.is(ElytraFly.Mode.Control)) {
+        if (EFly.INSTANCE.isOn() && EFly.INSTANCE.mode.getValue() == dev.suncat.mod.modules.impl.movement.EFly.Mode.Grim) {
             this.disable();
-            sendMessage("§4TargetFollow disabled due to ElytraFly mode is Control.");
+            sendMessage("§4TargetFollow disabled due to EFly mode is Control.");
+            return;
         }
+        // 重置高度偏移状态
+        this.hasAppliedHeightOffset = false;
     }
 
     @EventListener(priority = -9999)
     public void onRotation(UpdateRotateEvent event) {
         if (nullCheck()) return;
-        if (!mc.player.isFallFlying() && !ElytraFly.INSTANCE.isFallFlying()) return;
+        if (!mc.player.isFallFlying() && !EFly.INSTANCE.isGrimFlying()) return;
 
         PlayerEntity target = this.getClosestPlayer();
         if (target == null) {
@@ -81,9 +89,8 @@ public class TargetFollow extends Module {
         // 计算目标位置：如果开启 prioritizeHeight，瞄准头部；否则瞄准身体中心
         Vec3d targetPos = prioritizeHeight.getValue() ? target.getPos().add(0, 0.6, 0) : target.getBoundingBox().getCenter();
 
-        // 添加高度偏移：仅当目标在地上时才应用 HeightOffset 往上飞
-        // 如果目标在空中，则正常跟随目标当前高度
-        if (target.isOnGround()) {
+        // 添加高度偏移：仅当开启 HeightOffsetEnabled 且玩家在地面时才应用
+        if (this.heightOffsetEnable.getValue() && mc.player.isOnGround()) {
             double currentHeightOffset = this.heightOffset.getValue();
             if (currentHeightOffset > 0) {
                 targetPos = targetPos.add(0, currentHeightOffset, 0);

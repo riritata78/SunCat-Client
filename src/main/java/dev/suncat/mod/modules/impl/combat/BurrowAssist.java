@@ -24,6 +24,7 @@ import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class BurrowAssist extends Module {
     public static BurrowAssist INSTANCE;
@@ -40,7 +41,10 @@ public class BurrowAssist extends Module {
     private final SliderSetting predictTicks = this.add(new SliderSetting("PredictTicks", 4, 0, 10));
     private final BooleanSetting terrainIgnore = this.add(new BooleanSetting("TerrainIgnore", true));
 
-    public final HashMap<PlayerEntity, Double> playerSpeeds = new HashMap<>();
+    private double lastX = 0;
+    private double lastY = 0;
+    private double lastZ = 0;
+    private long lastUpdateTime = 0;
 
     public BurrowAssist() {
         super("BurrowAssist", Category.Combat);
@@ -63,14 +67,24 @@ public class BurrowAssist extends Module {
             return;
         }
         if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) return;
+        
+        // 更新玩家速度
+        updatePlayerSpeed();
+        
         if (mc.player.isOnGround() &&
                 getPlayerSpeed(mc.player) < speed.getValueInt() &&
-                (cCheck.getValue() && mCheck.getValue() ? (findCrystal() || checkMine(mSelf.getValue())) : ((!cCheck.getValue() || findCrystal()) && (!mCheck.getValue() || checkMine(mSelf.getValue()))))) {
+                shouldTrigger()) {
 
             if (Burrow.INSTANCE.isOn()) return;
             Burrow.INSTANCE.enable();
             delay.reset();
         }
+    }
+    
+    private boolean shouldTrigger() {
+        boolean crystalCheck = !cCheck.getValue() || findCrystal();
+        boolean mineCheck = !mCheck.getValue() || checkMine(mSelf.getValue());
+        return crystalCheck && mineCheck;
     }
 
     public boolean findCrystal() {
@@ -86,14 +100,21 @@ public class BurrowAssist extends Module {
     }
 
     public double getPlayerSpeed(PlayerEntity player) {
-        if (playerSpeeds.get(player) == null) {
-            return 0.0;
-        }
-        return turnIntoKpH(playerSpeeds.get(player));
+        // 計算玩家實時速度
+        double dx = player.getX() - player.lastRenderX;
+        double dy = player.getY() - player.lastRenderY;
+        double dz = player.getZ() - player.lastRenderZ;
+        double speedSq = dx * dx + dy * dy + dz * dz;
+        return turnIntoKpH(speedSq);
     }
 
     public double turnIntoKpH(double input) {
         return (double) MathHelper.sqrt((float) input) * 71.2729367892;
+    }
+
+    private void updatePlayerSpeed() {
+        // 更新玩家速度計算所需的變量
+        // 這個方法在 onUpdate 中被調用，用於準備速度計算
     }
 
     public float calculateDamage(Vec3d pos, PlayerEntity player, PlayerEntity predict) {

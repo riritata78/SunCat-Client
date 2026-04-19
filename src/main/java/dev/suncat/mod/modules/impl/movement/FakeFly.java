@@ -17,6 +17,7 @@ import dev.suncat.mod.modules.settings.impl.BooleanSetting;
 import dev.suncat.mod.modules.settings.impl.EnumSetting;
 import dev.suncat.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.projectile.FireworkRocketEntity;
@@ -35,6 +36,11 @@ public class FakeFly extends Module {
     public static FakeFly INSTANCE;
 
     private final EnumSetting<Mode> mode = this.add(new EnumSetting<>("Mode", Mode.Control));
+    public final EnumSetting<BhopMode> bhop = this.add(new EnumSetting<>("Bhop", BhopMode.None));
+    private final BooleanSetting ground = this.add(new BooleanSetting("Ground", true));
+    private final BooleanSetting water = this.add(new BooleanSetting("Water", true));
+    public final BooleanSetting inventory = this.add(new BooleanSetting("Inventory", true));
+    public final BooleanSetting keys = this.add(new BooleanSetting("OnlyKey", false));
     public final BooleanSetting armor = this.add(new BooleanSetting("Armor", true));
     private final BooleanSetting stand = this.add(new BooleanSetting("Stand", false));
     private final SliderSetting timeout = this.add(new SliderSetting("Timeout", 0.5, 0.1, 1.0, 0.01));
@@ -73,6 +79,10 @@ public class FakeFly extends Module {
         Control, Legit
     }
 
+    public enum BhopMode {
+        None, Fly, Vanilla
+    }
+
     @Override
     public String getInfo() {
         return this.mode.getValue().name();
@@ -104,26 +114,79 @@ public class FakeFly extends Module {
     }
 
     private void swapElytra() {
-        int slot = InventoryUtil.findItem(Items.ELYTRA);
+        int slot;
+        if (this.inventory.getValue()) {
+            slot = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
+        } else {
+            slot = InventoryUtil.findItem(Items.ELYTRA);
+        }
         if (slot != -1) {
-            InventoryUtil.switchToSlot(slot);
-            InventoryUtil.inventorySwap(slot, 6);
+            if (this.inventory.getValue()) {
+                InventoryUtil.inventorySwap(slot, 6);
+            } else {
+                InventoryUtil.switchToSlot(slot);
+                InventoryUtil.inventorySwap(slot, 6);
+            }
         }
     }
 
     private void swapChestplate() {
-        int slot = InventoryUtil.findItem(Items.DIAMOND_CHESTPLATE);
-        if (slot == -1) slot = InventoryUtil.findItem(Items.IRON_CHESTPLATE);
-        if (slot == -1) slot = InventoryUtil.findItem(Items.GOLDEN_CHESTPLATE);
+        int slot;
+        if (this.inventory.getValue()) {
+            slot = InventoryUtil.findItemInventorySlot(Items.DIAMOND_CHESTPLATE);
+            if (slot == -1) slot = InventoryUtil.findItemInventorySlot(Items.IRON_CHESTPLATE);
+            if (slot == -1) slot = InventoryUtil.findItemInventorySlot(Items.GOLDEN_CHESTPLATE);
+        } else {
+            slot = InventoryUtil.findItem(Items.DIAMOND_CHESTPLATE);
+            if (slot == -1) slot = InventoryUtil.findItem(Items.IRON_CHESTPLATE);
+            if (slot == -1) slot = InventoryUtil.findItem(Items.GOLDEN_CHESTPLATE);
+        }
         if (slot != -1) {
-            InventoryUtil.switchToSlot(slot);
-            InventoryUtil.inventorySwap(slot, 6);
+            if (this.inventory.getValue()) {
+                InventoryUtil.inventorySwap(slot, 6);
+            } else {
+                InventoryUtil.switchToSlot(slot);
+                InventoryUtil.inventorySwap(slot, 6);
+            }
         }
     }
 
     @EventListener(priority = -100)
     public void onUpdate(UpdateEvent event) {
         if (nullCheck()) return;
+
+        // Bhop mode logic - check if should activate
+        if (!this.bhop.is(BhopMode.None)) {
+            boolean canBhop = false;
+
+            // Check conditions based on settings
+            if (this.bhop.is(BhopMode.Fly)) {
+                // Only activate on movement keys if keys setting is enabled
+                if (this.keys.getValue()) {
+                    canBhop = MovementUtil.isMoving();
+                } else {
+                    canBhop = true;
+                }
+            }
+
+            // Check ground/water conditions
+            if (canBhop) {
+                if (!this.ground.getValue() && mc.player.isOnGround()) {
+                    canBhop = false;
+                }
+                if (!this.water.getValue() && mc.player.isInFluid()) {
+                    canBhop = false;
+                }
+            }
+
+            if (canBhop && !this.fly) {
+                if (!this.instantFlyTimer.passedMs((long) (1000 * this.timeout.getValue()))) return;
+                this.instantFlyTimer.reset();
+                this.fly = true;
+            }
+        }
+
+        // Original logic
         if (mc.player.isOnGround()) this.fly = false;
         if (!mc.player.isFallFlying()) {
             if (!mc.player.isOnGround() && mc.player.getVelocity().getY() < 0D) {
@@ -134,7 +197,7 @@ public class FakeFly extends Module {
         } else {
             this.fly = true;
         }
-        
+
         // Sn0w Style Rotation
         if (this.fly && this.mode.is(Mode.Control) && this.rotate.getValue()) {
             float yaw = this.getMoveYaw(mc.player.getYaw());

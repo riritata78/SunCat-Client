@@ -1,12 +1,15 @@
 package dev.suncat.mod.commands.impl;
 
+import dev.suncat.suncat;
 import dev.suncat.core.impl.KitManager;
 import dev.suncat.mod.modules.impl.combat.AutoRegear;
 import dev.suncat.mod.commands.Command;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class KitCommand extends Command {
     public KitCommand() {
@@ -32,10 +35,16 @@ public class KitCommand extends Command {
             case "load" -> {
                 if (parameters.length == 2) {
                     if (mc.player == null) return;
-                    KitManager.loadKit(parameters[1]);
-                    // Set the loaded kit name to AutoRegear
-                    if (AutoRegear.INSTANCE != null) {
-                        AutoRegear.INSTANCE.currentKitName = parameters[1];
+                    // Check if kit exists
+                    KitManager.Kit kit = KitManager.getKit(parameters[1]);
+                    if (kit != null) {
+                        // Set the loaded kit name to AutoRegear
+                        if (AutoRegear.INSTANCE != null) {
+                            AutoRegear.INSTANCE.currentKitName = parameters[1];
+                        }
+                        this.sendChatMessage("§a[Kit] §7已加载 Kit: §f" + parameters[1]);
+                    } else {
+                        this.sendChatMessage("§c[Kit] §7未找到 Kit: §f" + parameters[1]);
                     }
                 } else {
                     this.sendUsage();
@@ -82,14 +91,31 @@ public class KitCommand extends Command {
     @Override
     public String[] getAutocorrect(int count, List<String> seperated) {
         if (count == 1) {
-            String input = seperated.get(seperated.size() - 1).toLowerCase();
+            String input = seperated.getLast().toLowerCase();
             ArrayList<String> correct = new ArrayList<>();
             List<String> list = List.of("save", "load", "list", "delete");
             for (String x : list) {
-                if (!x.toLowerCase().startsWith(input)) continue;
+                if (!input.equalsIgnoreCase(suncat.getPrefix() + "kit") && !x.toLowerCase().startsWith(input)) continue;
                 correct.add(x);
             }
             return correct.toArray(new String[0]);
+        }
+        // Autocomplete kit names for "load" and "delete" commands
+        if (count == 2) {
+            String command = seperated.get(0).toLowerCase();
+            if (command.equals("load") || command.equals("delete")) {
+                File kitsDir = new File("suncat/kits");
+                if (kitsDir.exists() && kitsDir.isDirectory()) {
+                    File[] files = kitsDir.listFiles((dir, name) -> name.endsWith(".json"));
+                    if (files != null) {
+                        String input = seperated.getLast().toLowerCase();
+                        return Arrays.stream(files)
+                                .map(f -> f.getName().replace(".json", ""))
+                                .filter(name -> name.toLowerCase().startsWith(input))
+                                .toArray(String[]::new);
+                    }
+                }
+            }
         }
         return null;
     }

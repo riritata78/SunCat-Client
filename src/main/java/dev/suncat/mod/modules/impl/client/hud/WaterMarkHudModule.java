@@ -5,6 +5,8 @@ import dev.suncat.api.utils.render.TextUtil;
 import dev.suncat.core.impl.FontManager;
 import dev.suncat.mod.modules.HudModule;
 import dev.suncat.mod.modules.impl.client.ClickGui;
+import dev.suncat.mod.modules.settings.impl.BooleanSetting;
+import dev.suncat.mod.modules.settings.impl.SliderSetting;
 import dev.suncat.mod.modules.settings.impl.StringSetting;
 import java.util.Objects;
 import net.minecraft.client.gui.DrawContext;
@@ -12,6 +14,14 @@ import net.minecraft.client.gui.DrawContext;
 public class WaterMarkHudModule extends HudModule {
     public static WaterMarkHudModule INSTANCE;
     public final StringSetting title = this.add(new StringSetting("Title", "%hackname% %version%"));
+    public final BooleanSetting animate = this.add(new BooleanSetting("Animate", false));
+    public final SliderSetting animSpeed = this.add(new SliderSetting("AnimSpeed", 150, 50, 500, 10, this.animate::getValue));
+    public final StringSetting animText = this.add(new StringSetting("AnimText", "SunCat", this.animate::getValue));
+
+    private int animIndex = 1;
+    private long lastAnimTime = System.currentTimeMillis();
+    private boolean animForward = true;
+    private String cachedText = "";
 
     public WaterMarkHudModule() {
         super("WaterMark", "水印", 1, 1);
@@ -20,7 +30,36 @@ public class WaterMarkHudModule extends HudModule {
 
     @Override
     public void onRender2D(DrawContext context, float tickDelta) {
-        String text = this.title.getValue().replaceAll("%version%", suncat.VERSION).replaceAll("%hackname%", suncat.NAME);
+        String text;
+
+        // Handle animation - type out letters one by one then delete
+        if (this.animate.getValue()) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - this.lastAnimTime > this.animSpeed.getValue()) {
+                this.lastAnimTime = currentTime;
+
+                String fullText = this.animText.getValue();
+                if (this.animForward) {
+                    this.animIndex++;
+                    // When reaching the end, start going backwards
+                    if (this.animIndex >= fullText.length()) {
+                        this.animForward = false;
+                    }
+                } else {
+                    this.animIndex--;
+                    // When going back to start, start going forwards
+                    if (this.animIndex <= 1) {
+                        this.animForward = true;
+                    }
+                }
+            }
+
+            String animSubstring = this.animText.getValue().substring(0, this.animIndex);
+            text = animSubstring.isEmpty() ? " " : animSubstring;
+        } else {
+            text = this.title.getValue().replaceAll("%version%", suncat.VERSION).replaceAll("%hackname%", suncat.NAME);
+        }
+
         int w = HudSetting.useFont() ? (int)Math.ceil(FontManager.ui.getWidth(text)) : WaterMarkHudModule.mc.textRenderer.getWidth(text);
         int h;
         if (HudSetting.useFont()) {

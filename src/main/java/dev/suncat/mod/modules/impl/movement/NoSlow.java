@@ -33,6 +33,7 @@ import dev.suncat.api.events.impl.PacketEvent;
 import dev.suncat.api.events.impl.UpdateEvent;
 import dev.suncat.api.utils.player.MovementUtil;
 import dev.suncat.mod.modules.Module;
+import dev.suncat.mod.modules.impl.movement.EFly;
 import dev.suncat.mod.modules.settings.impl.BooleanSetting;
 import dev.suncat.mod.modules.settings.impl.EnumSetting;
 import java.util.LinkedList;
@@ -125,7 +126,7 @@ extends Module {
             for (KeyBinding k : new KeyBinding[]{NoSlow.mc.options.backKey, NoSlow.mc.options.leftKey, NoSlow.mc.options.rightKey}) {
                 k.setPressed(InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)k.getBoundKeyTranslationKey()).getCode()));
             }
-            NoSlow.mc.options.jumpKey.setPressed(ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.mode.is(ElytraFly.Mode.Bounce) && ElytraFly.INSTANCE.autoJump.getValue() || InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)NoSlow.mc.options.jumpKey.getBoundKeyTranslationKey()).getCode()));
+            NoSlow.mc.options.jumpKey.setPressed(EFly.INSTANCE.isOn() && EFly.INSTANCE.mode.is(EFly.Mode.Creative) || InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)NoSlow.mc.options.jumpKey.getBoundKeyTranslationKey()).getCode()));
             NoSlow.mc.options.forwardKey.setPressed(AutoWalk.INSTANCE.forward() || InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)NoSlow.mc.options.forwardKey.getBoundKeyTranslationKey()).getCode()));
             NoSlow.mc.options.sprintKey.setPressed(Sprint.INSTANCE.isOn() && !Sprint.INSTANCE.inWater() || InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)NoSlow.mc.options.sprintKey.getBoundKeyTranslationKey()).getCode()));
             if (this.allowSneak.getValue()) {
@@ -143,7 +144,7 @@ extends Module {
             for (KeyBinding k : new KeyBinding[]{NoSlow.mc.options.backKey, NoSlow.mc.options.leftKey, NoSlow.mc.options.rightKey}) {
                 k.setPressed(InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)k.getBoundKeyTranslationKey()).getCode()));
             }
-            NoSlow.mc.options.jumpKey.setPressed(ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.mode.is(ElytraFly.Mode.Bounce) && ElytraFly.INSTANCE.autoJump.getValue() || InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)NoSlow.mc.options.jumpKey.getBoundKeyTranslationKey()).getCode()));
+            NoSlow.mc.options.jumpKey.setPressed(EFly.INSTANCE.isOn() && EFly.INSTANCE.mode.is(EFly.Mode.Creative) || InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)NoSlow.mc.options.jumpKey.getBoundKeyTranslationKey()).getCode()));
             NoSlow.mc.options.forwardKey.setPressed(AutoWalk.INSTANCE.forward() || InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)NoSlow.mc.options.forwardKey.getBoundKeyTranslationKey()).getCode()));
             NoSlow.mc.options.sprintKey.setPressed(Sprint.INSTANCE.isOn() && !Sprint.INSTANCE.inWater() || InputUtil.isKeyPressed((long)mc.getWindow().getHandle(), (int)InputUtil.fromTranslationKey((String)NoSlow.mc.options.sprintKey.getBoundKeyTranslationKey()).getCode()));
             if (this.allowSneak.getValue()) {

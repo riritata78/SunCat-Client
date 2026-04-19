@@ -94,7 +94,7 @@ extends Module {
         armorMap.put(EquipmentSlot.CHEST, new int[]{38, this.getProtection(AutoArmor.mc.player.getInventory().getStack(38)), -1, -1});
         armorMap.put(EquipmentSlot.HEAD, new int[]{39, this.getProtection(AutoArmor.mc.player.getInventory().getStack(39)), -1, -1});
         for (int s = 0; s < 36; ++s) {
-            if (!(AutoArmor.mc.player.getInventory().getStack(s).getItem() instanceof ArmorItem) && AutoArmor.mc.player.getInventory().getStack(s).getItem() != Items.ELYTRA || AutoArmor.mc.player.getInventory().getStack(s).getItem() == Items.ELYTRA && (ElytraFly.INSTANCE.isOff() && this.autoElytra.getValue() || ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.packet.getValue())) continue;
+            if (!(AutoArmor.mc.player.getInventory().getStack(s).getItem() instanceof ArmorItem) && AutoArmor.mc.player.getInventory().getStack(s).getItem() != Items.ELYTRA || AutoArmor.mc.player.getInventory().getStack(s).getItem() == Items.ELYTRA && (ElytraFly.INSTANCE.isOff() && this.autoElytra.getValue() || ElytraFly.INSTANCE.isOn())) continue;
             int protection = this.getProtection(AutoArmor.mc.player.getInventory().getStack(s));
             EquipmentSlot slot = AutoArmor.mc.player.getInventory().getStack(s).getItem() instanceof ElytraItem ? EquipmentSlot.CHEST : ((ArmorItem)AutoArmor.mc.player.getInventory().getStack(s).getItem()).getSlotType();
             for (Map.Entry e : armorMap.entrySet()) {
@@ -238,4 +238,3 @@ extends Module {
 
     }
 }
-

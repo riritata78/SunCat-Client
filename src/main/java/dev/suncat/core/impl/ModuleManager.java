@@ -65,7 +65,11 @@ public class ModuleManager
         }
         this.addModule(new Panic());
         this.addModule(new AutoRegear());
-        this.addModule(new AutoDoor2());
+        this.addModule(new AutoTrapDoor());
+        this.addModule(new AutoEnderChest());
+        // this.addModule(new ModuleLacrymiraAura());
+        // this.addModule(new CatCrystal());
+        this.addModule(new AutoMace());
         this.addModule(new TpCrystalAura());
         this.addModule(new TpAnchorAura());
         this.addModule(new AntiExplosion());
@@ -81,11 +85,11 @@ public class ModuleManager
         this.addModule(new ExtraTab());
         this.addModule(new AntiWeak());
         this.addModule(new BedCrafter());
+        this.addModule(new ChestStealer());
         this.addModule(new Friend());
         this.addModule(new AspectRatio());
         this.addModule(new ChunkESP());
         this.addModule(new Aura());
-        this.addModule(new EnemyList());
         this.addModule(new PushCleaner());
         this.addModule(new AutoAnchor());
         this.addModule(new PhaseESP());
@@ -105,6 +109,7 @@ public class ModuleManager
         this.addModule(new AutoWeb());
         this.addModule(new AutoDick());
         this.addModule(new Blink());
+        this.addModule(new Pull());
         this.addModule(new ChorusControl());
         this.addModule(new BlockStrafe());
         this.addModule(new FastSwim());
@@ -141,9 +146,8 @@ public class ModuleManager
         this.addModule(new Tracers());
         this.addModule(new MovementSync());
         this.addModule(new EFly());
-        this.addModule(new ElytraFly());
+        this.addModule(new ChestSwap());
         this.addModule(new FlyOnFirstTime());
-        this.addModule(new AutoArmorPlus());
         this.addModule(new FakeFly());
         this.addModule(new TpBot());
         this.addModule(new TargetFollow());
@@ -153,20 +157,14 @@ public class ModuleManager
         this.addModule(new EntityControl());
         this.addModule(new NameTags());
         this.addModule(new ItemNametags());
-        this.addModule(new LowEndRender());
         this.addModule(new ShulkerViewer());
+        this.addModule(new MioFriendSync());
         this.addModule(new PopEz());
         this.addModule(new PingSpoof());
         this.addModule(new FakePlayer());
         this.addModule(new Spammer());
-        this.addModule(new AntiPistonPlus());
-        this.addModule(new MainhandPlus());
-        this.addModule(new TargetStrafePlus());
-        this.addModule(new TPAuraPlus());
-        this.addModule(new TPBotPlus());
-        this.addModule(new WebCleanerPlus());
-        this.addModule(new HiddenModule());
-        this.addModule(new HiddenModuleHUD());
+        // this.addModule(new Printer()); // 暫時禁用，Litematica API 方法不匹配
+        this.addModule(new WebCleaner());
         this.addModule(new MotionCamera());
         this.addModule(new HighLight());
         this.addModule(new FastFall());
@@ -179,6 +177,7 @@ public class ModuleManager
         this.addModule(new FreeLook());
         this.addModule(new TimerModule());
         this.addModule(new Tips());
+        this.addModule(new EnderChestRefill());
         this.addModule(new ClientSetting());
         this.addModule(new ColorsModule());
         this.addModule(new HudSetting());
@@ -207,6 +206,7 @@ public class ModuleManager
         this.addModule(new AntiEffects());
         this.addModule(new AntiLag());
         this.addModule(new NoFall());
+        this.addModule(new NoFallSneak());
         this.addModule(new NoRender());
         this.addModule(new NoSlow());
         this.addModule(new NoSound());
@@ -230,6 +230,7 @@ public class ModuleManager
         this.addModule(new SafeWalk());
         this.addModule(new NoJumpDelay());
         this.addModule(new Speed());
+        this.addModule(new HighJump());
         this.addModule(new Sprint());
         this.addModule(new Strafe());
         this.addModule(new Step());

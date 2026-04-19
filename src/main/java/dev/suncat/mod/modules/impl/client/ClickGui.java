@@ -160,7 +160,7 @@ extends Module {
     }
 
     private boolean isCustomColorsOpen() {
-        return this.isCustomMode() && this.colors.isOpen();
+        return this.isCustomMode() && this.colors.getValue();
     }
 
     public void keyCodec() {

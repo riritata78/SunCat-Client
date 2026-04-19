@@ -123,35 +123,19 @@ extends ReentrantThreadExecutor<Runnable> {
     private Window window;
     @Unique
     private static long suncatStartTs = 0L;
-    
-    // 用于平滑的窗口标题动画
-    @Unique
-    private static int titleIndex = 0;
-    @Unique
-    private static int titleDirection = 1; // 1 = 增加，-1 = 减少
-    @Unique
-    private static String cachedWindowTitle = "S";
-    @Unique
-    private static final String BASE_WINDOW_TITLE = "SunCat Client";
-    @Unique
-    private static long lastAnimTime = System.nanoTime(); // 初始化为当前时间，防止启动瞬间跳变
-    @Unique
-    private static final long ANIM_INTERVAL = 60000000L; // 动画更新间隔：0.06秒 (60ms)，更流畅的打字速度
-    
-    // 边界暂停控制：到达开头或结尾时暂停一下
-    @Unique
-    private static long lastBoundaryTime = 0L;
-    @Unique
-    private static final long BOUNDARY_PAUSE = 2000000000L; // 边界暂停时间：2秒
 
     public MixinMinecraftClient(String string) {
         super(string);
     }
 
+    // Note: onResolutionChanged was moved to WindowEventHandler interface in 1.21.1
+    // Using Window mixin instead for resize events
+    /*
     @Inject(method={"onResolutionChanged"}, at={@At(value="TAIL")})
     private void captureResize(CallbackInfo ci) {
         suncat.EVENT_BUS.post(new ResizeEvent(this.window));
     }
+    */
 
     @Redirect(method={"render"}, at=@At(value="INVOKE", target="Lcom/mojang/blaze3d/systems/RenderSystem;limitDisplayFPS(I)V"), require=0)
     public void fpsHook(int fps) {
@@ -266,8 +250,6 @@ extends ReentrantThreadExecutor<Runnable> {
             Render2DUtil.drawCircle(m, nx, ny, 2.0f, new Color(nodeC, true), 28);
         }
         
-        // 在渲染循环中更新标题动画，确保即使在加载界面（Tick 暂停时）动画依然流畅
-        MixinMinecraftClient.updateWindowTitleAnimation();
     }
 
     @Inject(method={"doAttack"}, at={@At(value="INVOKE", target="Lnet/minecraft/util/hit/HitResult;getType()Lnet/minecraft/util/hit/HitResult$Type;", shift=At.Shift.BEFORE)})
@@ -347,9 +329,6 @@ extends ReentrantThreadExecutor<Runnable> {
 
     @Inject(at={@At(value="TAIL")}, method={"tick()V"})
     public void tickTail(CallbackInfo info) {
-        // 更新窗口标题动画（每 3 tick 更新一次，约 6-7 次/秒，平滑且不卡顿）
-        MixinMinecraftClient.updateWindowTitleAnimation();
-        
         block2: {
             try {
                 if (suncat.EVENT_BUS != null) {
@@ -362,57 +341,6 @@ extends ReentrantThreadExecutor<Runnable> {
                 CommandManager.sendMessage("\u00a74An error has occurred (MinecraftClient.tick() [TAIL]) Message: [" + e.getMessage() + "]");
             }
         }
-    }
-    
-    /**
-     * 在 tick 中更新窗口标题动画，确保平滑过渡
-     * 修改：使用系统时间驱动，解决游戏卡顿时动画不流畅的问题
-     * 新增：在开头和结尾处暂停 2 秒，让用户看清完整标题
-     */
-    @Unique
-    private static void updateWindowTitleAnimation() {
-        if (ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.titleOverride.getValue()) {
-            return;
-        }
-
-        // 使用基于时间的平滑更新，脱离游戏 Tick 频率，保证动画流畅且实时
-        long now = System.nanoTime();
-        
-        // 检查是否处于边界暂停状态
-        if (now - lastBoundaryTime < BOUNDARY_PAUSE) {
-            // 仍在暂停中，只更新缓存标题
-            String baseTitle = MixinMinecraftClient.BASE_WINDOW_TITLE;
-            int displayLen = Math.max(1, MixinMinecraftClient.titleIndex);
-            MixinMinecraftClient.cachedWindowTitle = baseTitle.substring(0, displayLen);
-            return;
-        }
-        
-        // 检查是否到达动画间隔
-        if (now - lastAnimTime < ANIM_INTERVAL) {
-            return;
-        }
-        lastAnimTime = now;
-
-        String baseTitle = MixinMinecraftClient.BASE_WINDOW_TITLE;
-        int len = baseTitle.length();
-
-        // 更新索引
-        MixinMinecraftClient.titleIndex += MixinMinecraftClient.titleDirection;
-
-        // 到达边界时改变方向并设置暂停
-        if (MixinMinecraftClient.titleIndex >= len) {
-            MixinMinecraftClient.titleIndex = len;
-            MixinMinecraftClient.titleDirection = -1;
-            lastBoundaryTime = now; // 记录边界时间，开始暂停
-        } else if (MixinMinecraftClient.titleIndex <= 0) {
-            MixinMinecraftClient.titleIndex = 0;
-            MixinMinecraftClient.titleDirection = 1;
-            lastBoundaryTime = now; // 记录边界时间，开始暂停
-        }
-
-        // 更新缓存的标题
-        int displayLen = Math.max(1, MixinMinecraftClient.titleIndex);
-        MixinMinecraftClient.cachedWindowTitle = baseTitle.substring(0, displayLen);
     }
 
     /**
@@ -427,9 +355,8 @@ extends ReentrantThreadExecutor<Runnable> {
         if (ClientSetting.INSTANCE.titleOverride.getValue()) {
             return ClientSetting.INSTANCE.windowTitle.getValue();
         }
-
-        // 直接返回完整标题，取消打字机动画效果
-        return MixinMinecraftClient.BASE_WINDOW_TITLE;
+        
+        return suncat.NAME + " " + suncat.VERSION;
     }
 
     @Shadow

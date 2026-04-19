@@ -177,4 +177,3 @@ extends Module {
         return !this.checkFov.getValue();
     }
 }
-

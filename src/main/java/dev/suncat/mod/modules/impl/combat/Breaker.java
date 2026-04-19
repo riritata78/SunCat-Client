@@ -50,6 +50,8 @@ extends Module {
     private final BooleanSetting surround = this.add(new BooleanSetting("Surround", true));
     private final BooleanSetting cevPause = this.add(new BooleanSetting("CevPause", true));
     private final BooleanSetting forceDouble = this.add(new BooleanSetting("ForceDouble", false));
+    private final BooleanSetting antiFeet = this.add(new BooleanSetting("AntiFeet", false));
+
     public static final List<Block> hard;
 
     public Breaker() {
@@ -73,7 +75,51 @@ extends Module {
         if (player == null) {
             return;
         }
+        // AntiFeet: 如果目标下半身卡在基岩中，挖掘侧面方块
+        if (this.antiFeet.getValue() && this.isTargetStuckInBedrock(player)) {
+            this.doBreakAntiFeet(player);
+            return;
+        }
         this.doBreak(player);
+    }
+
+    /**
+     * 检查目标下半身是否卡在基岩中
+     */
+    private boolean isTargetStuckInBedrock(PlayerEntity target) {
+        BlockPos feetPos = new BlockPos((int)target.getX(), (int)target.getY(), (int)target.getZ());
+        return Breaker.mc.world.getBlockState(feetPos).getBlock() == Blocks.BEDROCK;
+    }
+
+    /**
+     * 当目标下半身卡在基岩中时，挖掘侧面方块
+     */
+    private void doBreakAntiFeet(PlayerEntity player) {
+        BlockPos feetPos = new BlockPos((int)player.getX(), (int)player.getY(), (int)player.getZ());
+        BlockPos headPos = feetPos.up();
+
+        Direction facing = player.getHorizontalFacing();
+        if (facing == null) {
+            return;
+        }
+
+        // 获取两侧的方块
+        Direction side1 = facing.rotateYClockwise();
+        Direction side2 = facing.rotateYCounterclockwise();
+
+        BlockPos sidePos1 = headPos.offset(side1);
+        BlockPos sidePos2 = headPos.offset(side2);
+
+        double dist1 = Breaker.mc.player.squaredDistanceTo(sidePos1.toCenterPos());
+        double dist2 = Breaker.mc.player.squaredDistanceTo(sidePos2.toCenterPos());
+        double rangeSq = this.range.getValue() * this.range.getValue();
+
+        // 优先挖掘更近的侧面
+        if (dist1 <= rangeSq && this.canBreak(sidePos1)) {
+            PacketMine.INSTANCE.mine(sidePos1);
+        } else if (dist2 <= rangeSq && this.canBreak(sidePos2)) {
+            PacketMine.INSTANCE.mine(sidePos2);
+        }
     }
 
     /*

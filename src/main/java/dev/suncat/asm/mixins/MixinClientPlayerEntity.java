@@ -45,6 +45,7 @@ import dev.suncat.mod.modules.impl.movement.NoSlow;
 import dev.suncat.mod.modules.impl.movement.Velocity;
 import dev.suncat.mod.modules.impl.player.Freecam;
 import dev.suncat.api.utils.player.MovementUtil;
+import net.minecraft.entity.EntityPose;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -70,6 +71,7 @@ public abstract class MixinClientPlayerEntity
 extends AbstractClientPlayerEntity {
     @Shadow
     public Input input;
+   
     @Final
     @Shadow
     protected MinecraftClient client;
@@ -278,7 +280,12 @@ extends AbstractClientPlayerEntity {
                 double d = x - this.lastX;
                 double e = y - this.lastBaseY;
                 double f = z - this.lastZ;
-
+                double g = yaw - this.lastYaw;
+                double h = pitch - this.lastPitch;
+                ++this.ticksSinceLastPositionPacketSent;
+                boolean bl2 = MathHelper.squaredMagnitude(d, e, f) > MathHelper.square(2.0E-4) || this.ticksSinceLastPositionPacketSent >= 20;
+                boolean bl3 = g != 0.0 || h != 0.0;
+                
                 // 应用服务器旋转
                 float sendYaw = yaw;
                 float sendPitch = pitch;
@@ -286,12 +293,6 @@ extends AbstractClientPlayerEntity {
                     sendYaw = RotationManager.serverYaw;
                     sendPitch = RotationManager.serverPitch;
                 }
-
-                double g = sendYaw - this.lastYaw;
-                double h = sendPitch - this.lastPitch;
-                ++this.ticksSinceLastPositionPacketSent;
-                boolean bl2 = MathHelper.squaredMagnitude(d, e, f) > MathHelper.square(2.0E-4) || this.ticksSinceLastPositionPacketSent >= 20;
-                boolean bl3 = g != 0.0 || h != 0.0;
 
                 if (this.hasVehicle()) {
                     Vec3d vec3d = this.getVelocity();
@@ -312,18 +313,15 @@ extends AbstractClientPlayerEntity {
                     this.lastZ = z;
                     this.ticksSinceLastPositionPacketSent = 0;
                 }
-                if (bl3) {
-                    this.lastYaw = sendYaw;
-                    this.lastPitch = sendPitch;
+        if (bl3) {
+                    this.lastYaw = yaw;
+                    this.lastPitch = pitch;
                 }
                 this.lastOnGround = ground;
             }
             
             // Post event after packets sent
             suncat.EVENT_BUS.post(TickEvent.get(Event.Stage.Post));
-            if (AntiCheat.INSTANCE.acMode.is(AntiCheat.AcMode.Soft)) {
-                suncat.EVENT_BUS.post(TickEvent.get(Event.Stage.Post));
-            }
             return;
         }
         
@@ -401,6 +399,8 @@ extends AbstractClientPlayerEntity {
             this.rotation = false;
         }
     }
+
+
 
     @Inject(method={"tick"}, at={@At(value="INVOKE", target="Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V", ordinal=1, shift=At.Shift.AFTER)})
     private void onTickHasVehicleAfterSendPackets(CallbackInfo info) {

@@ -98,6 +98,7 @@ extends Module {
     // Take speed control
     private int takeProgress = 0;
     private final Timer clickTimer = new Timer();
+    private int takenThisCycle = 0;
     
     private final Timer timer = new Timer();
     private final List<BlockPos> openList = new ArrayList<BlockPos>();
@@ -145,6 +146,7 @@ extends Module {
         this.timeoutTimer.reset();
         this.placePos = null;
         this.takeProgress = 0;
+        this.takenThisCycle = 0;
         this.clickTimer.reset();
         this.placeKeyPressed = false;
         this.hasShownNoShulkerMessage = false;
@@ -449,99 +451,106 @@ extends Module {
             ShulkerBoxScreenHandler shulker = (ShulkerBoxScreenHandler)screenHandler;
 
             // Kit mode - take items based on saved kit in order
-            // Use currentKitName if set, otherwise use default kit name
-            String kitName = this.currentKitName != null ? this.currentKitName : "kit0";
-            KitManager.Kit kit = KitManager.getKit(kitName);
+            // Use currentKitName (set by kit load command)
+            String kitName = this.currentKitName;
+            KitManager.Kit kit = kitName != null ? KitManager.getKit(kitName) : null;
 
             if (kit != null) {
-                int takesThisTick = 0;
+                this.takenThisCycle = 0;
                 // 如果开启秒补，每 tick 拿取 36 个物品（全部）
                 // 否则使用 TakeSpeed 设置
                 int maxTakes = this.instantTake.getValue() ? 36 : this.takeSpeed.getValueInt();
 
-                // Continue from last progress position
-                for (int kitSlot = this.takeProgress; kitSlot < 36 && takesThisTick < maxTakes; kitSlot++) {
-                    if (kit.mainInventory[kitSlot] == null || kit.mainInventory[kitSlot].isEmpty()) {
-                        this.takeProgress = kitSlot + 1;
-                        continue;
-                    }
-
-                    // Check if player already has this item in the correct slot
-                    ItemStack playerStack = AutoRegear.mc.player.getInventory().getStack(kitSlot);
-                    String playerItemId = playerStack.isEmpty() ? "" : Registries.ITEM.getId(playerStack.getItem()).toString();
-                    if (playerItemId.equals(kit.mainInventory[kitSlot])) {
-                        this.takeProgress = kitSlot + 1;
-                        continue; // Already has correct item
-                    }
-
-                    // Check if player has a different item in this slot
-                    boolean slotOccupied = !playerStack.isEmpty();
-
-                    // If ReplaceItem is enabled, we'll replace the item; otherwise skip
-                    if (slotOccupied && !this.replaceItem.getValue()) {
-                        this.takeProgress = kitSlot + 1;
-                        continue; // Slot occupied by different item, skip
-                    }
-
-                    // Find this item in shulker
-                    boolean found = false;
-                    for (Slot slot : shulker.slots) {
-                        if (slot.id >= 27 || slot.getStack().isEmpty()) continue;
-
-                        String shulkerItemId = Registries.ITEM.getId(slot.getStack().getItem()).toString();
-                        if (!shulkerItemId.equals(kit.mainInventory[kitSlot])) continue;
-
-                        // Click to move item to player inventory
-                        AutoRegear.mc.interactionManager.clickSlot(shulker.syncId, slot.id, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
-                        take = true;
-                        takesThisTick++;
-                        
-                        // 秒补模式下不重置 clickTimer，普通模式需要重置
-                        if (!this.instantTake.getValue()) {
-                            this.clickTimer.reset();
-                        }
-
-                        // Now move the item from its current position to the correct kit slot
-                        // After QUICK_MOVE, item goes to first available slot, we need to swap it to correct position
-                        int itemSlot = findItemInInventory(kit.mainInventory[kitSlot]);
-                        if (itemSlot != -1 && itemSlot != kitSlot) {
-                            // Swap item to correct slot
-                            swapInventorySlots(itemSlot, kitSlot);
-                        }
-
-                        this.takeProgress = kitSlot + 1;
-                        found = true;
-                        break; // Move to next kit item
-                    }
-
-                    if (!found) {
-                        this.takeProgress = kitSlot + 1;
-                    }
-                }
-
-                // Reset progress when done
-                if (this.takeProgress >= 36) {
-                    // Start waiting for transfer to complete
-                    if (!this.waitingForTransfer) {
-                        this.waitingForTransfer = true;
-                        this.transferTimer.reset();
-                    }
-                    // 秒补模式下等待更长时间（因为一次性转移更多物品）
-                    int waitTime = this.instantTake.getValue() ? 1500 : 1000;
-                    if (this.transferTimer.passed(waitTime)) {
-                        this.takeProgress = 0;
-                        this.waitingForTransfer = false;
-                        // All items taken, mine the shulker box
-                        if (this.mine.getValue() && this.openPos != null) {
-                            if (AutoRegear.mc.world.getBlockState(this.openPos).getBlock() instanceof ShulkerBoxBlock) {
-                                // 检查 BlockEntity 是否有效，防止崩端
-                                if (isValidShulkerBox(this.openPos)) {
-                                    PacketMine.INSTANCE.mine(this.openPos);
-                                }
+                // Calculate needed items and quantities for instant take mode
+                java.util.Map<String, Integer> neededItems = new java.util.HashMap<>();
+                if (this.instantTake.getValue()) {
+                    for (int i = 0; i < 36; i++) {
+                        if (kit.mainInventory[i] != null && !kit.mainInventory[i].isEmpty()) {
+                            String itemId = kit.mainInventory[i];
+                            int needCount = kit.mainInventoryCounts[i];
+                            int currentCount = getPlayerItemCount(itemId);
+                            int needed = Math.max(0, needCount - currentCount);
+                            if (needed > 0) {
+                                neededItems.merge(itemId, needed, Integer::sum);
                             }
                         }
                     }
-                    return;  // Don't continue taking items
+                }
+
+                // 简化处理：遍历Kit中的所有物品，拿取不足的数量
+                boolean hasTaken = false;
+                for (int i = 0; i < 36 && this.takenThisCycle < maxTakes; i++) {
+                    if (kit.mainInventory[i] == null || kit.mainInventory[i].isEmpty()) {
+                        continue;
+                    }
+
+                    String itemId = kit.mainInventory[i];
+                    int needCount = kit.mainInventoryCounts[i];
+                    int currentCount = getPlayerItemCount(itemId);
+
+                    // 检查是否还需要这个物品
+                    if (currentCount >= needCount) {
+                        continue;
+                    }
+
+                    // 在容器中查找该物品并拿取
+                    for (Slot slot : shulker.slots) {
+                        if (slot.id >= 27 || slot.getStack().isEmpty()) continue; // 只检查容器槽位
+
+                        String shulkerItemId = Registries.ITEM.getId(slot.getStack().getItem()).toString();
+                        if (shulkerItemId.equals(itemId)) {
+                            // 拿取物品
+                            AutoRegear.mc.interactionManager.clickSlot(shulker.syncId, slot.id, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
+                            take = true;
+                            hasTaken = true;
+                            this.takenThisCycle++;
+
+                            // 秒补模式下不重置 clickTimer，普通模式需要重置
+                            if (!this.instantTake.getValue()) {
+                                this.clickTimer.reset();
+                            }
+                            
+                            // 更新当前数量
+                            currentCount = getPlayerItemCount(itemId);
+                            
+                            // 如果已满足所需数量，跳出内层循环
+                            if (currentCount >= needCount) {
+                                break;
+                            }
+                            
+                            // 如果达到本次最大拿取数量，跳出外层循环
+                            if (this.takenThisCycle >= maxTakes) {
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (this.takenThisCycle >= maxTakes) {
+                        break;
+                    }
+                }
+                
+                // 如果没有可拿取的物品，且启用了自动禁用，则禁用模块
+                if (!hasTaken && this.autoDisable.getValue()) {
+                    if (this.mine.getValue() && this.openPos != null) {
+                        if (AutoRegear.mc.world.getBlockState(this.openPos).getBlock() instanceof ShulkerBoxBlock) {
+                            // 检查 BlockEntity 是否有效，防止崩端
+                            if (isValidShulkerBox(this.openPos)) {
+                                PacketMine.INSTANCE.mine(this.openPos);
+                            }
+                        }
+                    }
+                    this.disable();
+                }
+            } else {
+                // No kit loaded - take everything like before
+                for (Slot slot : shulker.slots) {
+                    if (slot.id < 27 && !slot.getStack().isEmpty()) {
+                        AutoRegear.mc.interactionManager.clickSlot(shulker.syncId, slot.id, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
+                        take = true;
+                        this.takenThisCycle++;
+                        if (this.takenThisCycle >= this.takeSpeed.getValueInt()) break;
+                    }
                 }
             }
         }
@@ -641,7 +650,7 @@ extends Module {
             }
             return Type.QuickMove;
         }
-        if (Item.getRawId((Item)i.getItem()) == Item.getRawId((Item)Items.SPLASH_POTION)) {
+        if (i.getItem() == Items.SPLASH_POTION) {
             PotionContentsComponent potionContentsComponent = (PotionContentsComponent)i.getOrDefault(DataComponentTypes.POTION_CONTENTS, (Object)PotionContentsComponent.DEFAULT);
             for (StatusEffectInstance effect : potionContentsComponent.getEffects()) {
                 if (effect.getEffectType().value() == StatusEffects.SPEED.value()) {
@@ -698,7 +707,31 @@ extends Module {
         return -1;
     }
 
-    // Swap two slots in player inventory using QUICK_MOVE
+    // Get total count of specific item in player inventory
+    private int getPlayerItemCount(String itemId) {
+        int count = 0;
+        // Main inventory (0-35)
+        for (int i = 0; i < 36; i++) {
+            ItemStack stack = AutoRegear.mc.player.getInventory().getStack(i);
+            if (!stack.isEmpty()) {
+                String stackId = Registries.ITEM.getId(stack.getItem()).toString();
+                if (stackId.equals(itemId)) {
+                    count += stack.getCount();
+                }
+            }
+        }
+        // Offhand
+        ItemStack offhand = AutoRegear.mc.player.getInventory().offHand.get(0);
+        if (!offhand.isEmpty()) {
+            String stackId = Registries.ITEM.getId(offhand.getItem()).toString();
+            if (stackId.equals(itemId)) {
+                count += offhand.getCount();
+            }
+        }
+        return count;
+    }
+
+    // Swap two slots in player inventory using PICKUP actions
     private void swapInventorySlots(int slot1, int slot2) {
         ScreenHandler screenHandler = AutoRegear.mc.player.currentScreenHandler;
         if (screenHandler == null) return;
@@ -712,12 +745,12 @@ extends Module {
             return;
         }
 
-        // Quick move from slot1 to temp location
-        AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot1, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
-        // Quick move from slot2 to slot1
-        AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot2, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
-        // Quick move from temp (now slot1) to slot2
-        AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot1, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
+        // Pick up item from slot1
+        AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot1, 0, SlotActionType.PICKUP, (PlayerEntity)AutoRegear.mc.player);
+        // Pick up item from slot2 (places slot1 item there, picks up slot2 item)
+        AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot2, 0, SlotActionType.PICKUP, (PlayerEntity)AutoRegear.mc.player);
+        // Place the item (originally from slot2) into slot1
+        AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot1, 0, SlotActionType.PICKUP, (PlayerEntity)AutoRegear.mc.player);
     }
 
     /**
@@ -792,4 +825,3 @@ extends Module {
 
     }
 }
-

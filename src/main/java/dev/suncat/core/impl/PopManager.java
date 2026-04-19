@@ -33,6 +33,7 @@ import net.minecraft.world.World;
 public class PopManager
 implements Wrapper {
     public final HashMap<String, Integer> popContainer = new HashMap();
+    public final HashMap<String, Long> popTimeContainer = new HashMap(); // Track when pop happened
     private final List<PlayerEntity> deadPlayer = new ArrayList<PlayerEntity>();
 
     public PopManager() {
@@ -50,6 +51,19 @@ implements Wrapper {
 
     public int getPop(PlayerEntity player) {
         return this.getPop(player.getName().getString());
+    }
+
+    public long getPopTime(PlayerEntity player) {
+        return this.popTimeContainer.getOrDefault(player.getName().getString(), 0L);
+    }
+
+    public long getRemainingPopTime(PlayerEntity player) {
+        long popTime = this.popTimeContainer.getOrDefault(player.getName().getString(), 0L);
+        if (popTime == 0) return 0;
+        // Totem pop effect lasts 30 seconds (600 ticks = 30 seconds at 20 ticks/sec)
+        long elapsed = System.currentTimeMillis() - popTime;
+        long remaining = 30000 - elapsed;
+        return Math.max(0, remaining);
     }
 
     public void onUpdate() {
@@ -84,6 +98,7 @@ implements Wrapper {
 
     public void onDeath(PlayerEntity player) {
         this.popContainer.remove(player.getName().getString());
+        this.popTimeContainer.remove(player.getName().getString());
     }
 
     public void onTotemPop(PlayerEntity player) {
@@ -94,6 +109,8 @@ implements Wrapper {
         } else {
             this.popContainer.put(player.getName().getString(), l_Count);
         }
+        // Record the time when the pop happened
+        this.popTimeContainer.put(player.getName().getString(), System.currentTimeMillis());
         suncat.EVENT_BUS.post(TotemEvent.get(player));
     }
 }

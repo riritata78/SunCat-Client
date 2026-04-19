@@ -54,9 +54,9 @@ extends Module {
     private final BooleanSetting flight = this.add(new BooleanSetting("Flight", false, () -> this.mode.is(Mode.Ground)));
     
     // Grim 模式设置
-    private final BooleanSetting phaseOnly = this.add(new BooleanSetting("PhaseOnly", false, () -> this.mode.is(Mode.Grim) || this.mode.is(Mode.GrimV3)));
-    private final BooleanSetting wallsOnly = this.add(new BooleanSetting("WallsOnly", false, () -> (this.mode.is(Mode.Grim) || this.mode.is(Mode.GrimV3)) && this.phaseOnly.isOpen()));
-    private final BooleanSetting moveFix = this.add(new BooleanSetting("MoveFix", false, () -> this.mode.is(Mode.Grim) || this.mode.is(Mode.GrimV3)));
+    private final BooleanSetting phaseOnly = this.add(new BooleanSetting("PhaseOnly", false, () -> this.mode.is(Mode.Grim)));
+    private final BooleanSetting wallsOnly = this.add(new BooleanSetting("WallsOnly", false, () -> this.mode.is(Mode.Grim) && this.phaseOnly.isOpen()));
+    private final BooleanSetting moveFix = this.add(new BooleanSetting("MoveFix", false, () -> this.mode.is(Mode.Grim)));
     
     private final Timer attackTimer = new Timer();
     private boolean postUpdateGround;
@@ -392,8 +392,7 @@ extends Module {
         Packet,
         Ground,
         BBTT,
-        Grim,
-        GrimV3;
+        Grim;
 
     }
 }

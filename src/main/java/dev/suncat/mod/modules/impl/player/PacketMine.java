@@ -139,11 +139,6 @@ extends Module {
     private final BooleanSetting swing = this.add(new BooleanSetting("Swing", true, () -> this.page.is(Page.General)));
     private final BooleanSetting endSwing = this.add(new BooleanSetting("EndSwing", false, () -> this.page.is(Page.General)));
     
-    // GrimV3 包挖模式设置
-    private final BooleanSetting grimV3 = this.add(new BooleanSetting("GrimV3", false, () -> this.page.is(Page.General)).setParent());
-    private final BooleanSetting grimV3MultiSwing = this.add(new BooleanSetting("MultiSwing", true, () -> this.page.is(Page.General) && this.grimV3.isOpen()));
-    private final BooleanSetting grimV3Abort = this.add(new BooleanSetting("AbortFirst", false, () -> this.page.is(Page.General) && this.grimV3.isOpen()));
-    
     public final SliderSetting range = this.add(new SliderSetting("Range", 6.0, 3.0, 10.0, 0.1, () -> this.page.is(Page.General)));
     private final EnumSetting<SwingSide> swingMode = this.add(new EnumSetting<SwingSide>("SwingSide", SwingSide.All, () -> this.page.is(Page.General)));
     private final BooleanSetting unbreakableCancel = this.add(new BooleanSetting("UnbreakableCancel", true, () -> this.page.is(Page.Check)));
@@ -157,7 +152,7 @@ extends Module {
     private final BooleanSetting smart = this.add(new BooleanSetting("Smart", true, () -> this.page.is(Page.Check) && this.checkGround.getValue()));
     private final BooleanSetting usingPause = this.add(new BooleanSetting("UsingPause", false, () -> this.page.is(Page.Check)).setParent());
     private final BooleanSetting allowOffhand = this.add(new BooleanSetting("AllowOffhand", true, () -> this.page.is(Page.Check) && this.usingPause.isOpen()));
-    private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFeetMine", false, () -> this.page.is(Page.Check)));
+private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFeetMine", false, () -> this.page.is(Page.Check)));
     private final SliderSetting antiFeetRange = this.add(new SliderSetting("AntiFeetRange", 6.0, 3.0, 10.0, 0.1, () -> this.antiFeetMine.getValue() && this.page.is(Page.Check)));
     private final BooleanSetting antiFeetDouble = this.add(new BooleanSetting("AntiFeetDouble", false, () -> this.antiFeetMine.getValue() && this.page.is(Page.Check)));
     private final BooleanSetting bypassGround = this.add(new BooleanSetting("BypassGround", true, () -> this.page.is(Page.Check)));
@@ -563,12 +558,7 @@ extends Module {
                 this.doDoubleBreak(side);
             }
             
-            // GrimV3 模式使用特殊的发包序列
-            if (this.grimV3.getValue()) {
-                this.doGrimV3Break(side);
-            } else {
-                PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, this.breakPos, side, id));
-            }
+            PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, this.breakPos, side, id));
             
             if (this.rotate.getValue() && !this.shouldYawStep()) {
                 suncat.ROTATION.snapBack();
@@ -584,38 +574,6 @@ extends Module {
     void doDoubleBreak(Direction side) {
         PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, this.breakPos, side, id));
         PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, this.breakPos, side, id));
-    }
-
-    /**
-     * GrimV3 模式发包逻辑 (来自 Shoreline)
-     * 发包序列：STOP -> START -> ABORT + 多次甩手
-     */
-    void doGrimV3Break(Direction side) {
-        if (this.grimV3Abort.getValue()) {
-            // AbortFirst 模式：先发送 ABORT 重置状态
-            PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.ABORT_DESTROY_BLOCK, this.breakPos, side, id));
-        }
-        
-        // GrimV3 标准发包序列
-        PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, this.breakPos, side, id));
-        PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, this.breakPos, side, id));
-        PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.ABORT_DESTROY_BLOCK, this.breakPos, side, id));
-        
-        // 多次甩手 (Shoreline 特征)
-        if (this.grimV3MultiSwing.getValue()) {
-            PacketMine.sendSequencedPacket(id -> {
-                EntityUtil.swingHand(Hand.MAIN_HAND, this.swingMode.getValue());
-                return null;
-            });
-            PacketMine.sendSequencedPacket(id -> {
-                EntityUtil.swingHand(Hand.MAIN_HAND, this.swingMode.getValue());
-                return null;
-            });
-            PacketMine.sendSequencedPacket(id -> {
-                EntityUtil.swingHand(Hand.MAIN_HAND, this.swingMode.getValue());
-                return null;
-            });
-        }
     }
 
     boolean placeCrystal() {
@@ -702,12 +660,7 @@ extends Module {
         }
         this.breakFinalTime = this.getBreakTime(this.breakPos, slot);
         
-        // GrimV3 模式使用特殊的发包序列
-        if (this.grimV3.getValue()) {
-            this.doGrimV3Break(side);
-        } else {
-            PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, this.breakPos, side, id));
-        }
+        PacketMine.sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, this.breakPos, side, id));
         
         if (this.rotate.getValue() && !this.shouldYawStep()) {
             suncat.ROTATION.snapBack();
@@ -759,7 +712,7 @@ extends Module {
     }
 
     /**
-     * AntiFeetMine: 检测敌人下半身是否在基岩中，如果是则返回侧面的挖掘方向
+     * AntiFeetMine: 检测敌人下半身是否卡在固体方块中，如果是则返回侧面的挖掘方向
      */
     private Direction getAntiFeetClickSide(BlockPos pos) {
         if (!this.antiFeetMine.getValue()) {
@@ -774,15 +727,14 @@ extends Module {
             double dist = mc.player.squaredDistanceTo(player);
             if (dist > rangeSq) continue;
 
-            // 获取玩家下半身位置的方块
-            BlockPos entityFeetPos = new BlockPos((int)player.getX(), (int)player.getY(), (int)player.getZ());
-            BlockPos entityHeadPos = entityFeetPos.up();
+            // 获取玩家边界框
+            Box box = player.getBoundingBox();
 
-            // 检查玩家下半身是否在基岩里
-            boolean isFeetInBedrock = mc.world.getBlockState(entityFeetPos).getBlock() == Blocks.BEDROCK;
+            // 检查下半身是否卡在固体方块中（使用和 AutoTrapDoor 一样的逻辑）
+            if (isEntityFeetStuckInSolid(player)) {
+                BlockPos entityFeetPos = new BlockPos((int)player.getX(), (int)player.getY(), (int)player.getZ());
+                BlockPos entityHeadPos = entityFeetPos.up();
 
-            // 如果下半身在基岩里，禁止挖掘脚部位置
-            if (isFeetInBedrock) {
                 // 如果当前挖掘位置是玩家脚部位置，返回 null（不挖脚）
                 if (pos.equals(entityFeetPos)) {
                     return null;
@@ -790,10 +742,8 @@ extends Module {
 
                 // 如果当前挖掘位置是玩家头部位置，返回侧面的挖掘方向
                 if (pos.equals(entityHeadPos)) {
-                    // 获取玩家朝向
                     Direction facing = player.getHorizontalFacing();
                     if (facing != null) {
-                        // 脸旁边的方块（侧面）
                         Direction sideFacing = facing.rotateYClockwise();
                         return sideFacing.getOpposite();
                     }
@@ -813,6 +763,15 @@ extends Module {
 
         // 正常情况，使用默认的点击面
         return BlockUtil.getClickSideStrict(pos);
+    }
+
+    /**
+     * 检查实体下半身是否卡在基岩中
+     */
+    private boolean isEntityFeetStuckInSolid(PlayerEntity target) {
+        BlockPos entityFeetPos = new BlockPos((int)target.getX(), (int)target.getY(), (int)target.getZ());
+        // 只检查基岩
+        return mc.world.getBlockState(entityFeetPos).getBlock() == Blocks.BEDROCK;
     }
 
     boolean faceVector(Vec3d directionVec) {

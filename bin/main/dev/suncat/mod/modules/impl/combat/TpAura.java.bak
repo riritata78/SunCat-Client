@@ -1,0 +1,86 @@
+package dev.idhammai.mod.modules.impl.combat;
+
+// 导入部分已反混淆
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Box;
+import net.minecraft.block.BlockState;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
+// ... 等等
+
+public class TpAura extends Module {
+    
+    // 主要字段
+    private Entity currentTarget;
+    private List<BlockPos> currentPath;
+    private List<Vec3d> renderPathNodes;
+    
+    // 攻击执行方法
+    private void executeSilentAttack() {
+        // 静默攻击 - 直接发送攻击包
+        if (currentTarget == null) return;
+        
+        double distance = mc.player.distanceTo(currentTarget);
+        double effectiveRange = throughWalls.getValue() ? wallRange.getValue() : range.getValue();
+        
+        if (distance > effectiveRange) return;
+        if (!throughWalls.getValue() && !mc.player.canSee(currentTarget)) return;
+        
+        // 发送攻击包
+        mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(currentTarget, mc.player.getRotation()));
+        
+        if (swingHand.getValue()) {
+            mc.getNetworkHandler().sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
+        }
+    }
+    
+    private void executeTpAttack() {
+        // 传送攻击 - 通过发送位置包瞬移到目标附近
+        BlockPos startPos = mc.player.getBlockPos();
+        BlockPos endPos = currentTarget.getBlockPos();
+        List<BlockPos> path = computePath(startPos, endPos);
+        
+        // 沿路径发送传送包
+        for (BlockPos pos : path) {
+            sendTpPacket(pos);
+        }
+        
+        // 攻击
+        mc.interactionManager.attackEntity(mc.player, currentTarget);
+        
+        // 可选：传送回原位置
+        if (returnPos.getValue()) {
+            for (int i = path.size() - 2; i >= 0; i--) {
+                sendTpPacket(path.get(i));
+            }
+        }
+    }
+    
+    private void executePaperAttack() {
+        // Paper服务器攻击模式 - 利用Paper服务器的移动包处理特性
+        Vec3d startPos = mc.player.getPos();
+        Vec3d targetPos = currentTarget.getPos();
+        
+        // 发送空移动包
+        for (int i = 0; i < paperPackets.getValue(); i++) {
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookOnly(...));
+        }
+        
+        // 传送到目标位置
+        sendMove(finalPos);
+        
+        // 攻击
+        mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(currentTarget, mc.player.getRotation()));
+        
+        // 传送回原位置
+        if (returnPos.getValue()) {
+            sendMove(startPos);
+            sendMove(getOffset(startPos));
+            mc.player.setPosition(offset.x, offset.y, offset.z);
+        }
+    }
+}

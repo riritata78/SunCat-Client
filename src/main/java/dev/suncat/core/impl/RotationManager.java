@@ -618,5 +618,16 @@ implements Wrapper {
             this.pitch = pitch;
         }
     }
+
+    /**
+     * 用于 EFly 等模块的旋转请求
+     * 设置服务器旋转（只发包不改视角）
+     */
+    public void rotateTo(dev.suncat.api.utils.eflyRotation.Rotation rotation) {
+        serverRotationActive = true;
+        serverYaw = rotation.getYaw();
+        serverPitch = rotation.getPitch();
+    }
 }
+
 

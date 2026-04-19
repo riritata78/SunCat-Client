@@ -10,7 +10,6 @@ import dev.suncat.mod.gui.clickgui.ClickGuiScreen;
 import dev.suncat.mod.gui.items.buttons.StringButton;
 import dev.suncat.mod.modules.impl.client.ClickGui;
 import dev.suncat.mod.modules.impl.client.ClientSetting;
-import dev.suncat.mod.modules.impl.combat.EnemyList;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,6 @@ public final class ClickGuiAiAssistantPage {
     private float scroll;
     private String input = "";
     private boolean inputListening;
-    private boolean enemyListUnlocked = false;
 
     public ClickGuiAiAssistantPage(ClickGuiScreen host) {
         this.host = host;
@@ -331,92 +329,7 @@ public final class ClickGuiAiAssistantPage {
 
     private String buildReply(String content, String modelName, boolean chinese) {
         String lower = content.toLowerCase();
-        
-        // 检查敌人列表命令
-        if (lower.equals("diren") || lower.equals("敌人")) {
-            this.enemyListUnlocked = true;
-            if (chinese) {
-                return "（" + modelName + "）已解锁敌人列表功能。默认优先攻击：Router、Filter、ak1ra5ura、玩玩 alex。";
-            }
-            return "(" + modelName + ") Enemy list unlocked. Default priority targets: Router, Filter, ak1ra5ura, 玩玩 alex.";
-        }
-        
-        // 敌人列表相关命令
-        if (this.enemyListUnlocked) {
-            if (lower.startsWith("add ") || lower.startsWith("添加 ")) {
-                String name = content.substring(content.indexOf(" ") + 1).trim();
-                if (Wrapper.mc != null && Wrapper.mc.world != null) {
-                    for (var player : Wrapper.mc.world.getPlayers()) {
-                        if (player.getName().getString().equalsIgnoreCase(name)) {
-                            EnemyList.INSTANCE.addEnemy(player);
-                            if (chinese) {
-                                return "（" + modelName + "）已添加 " + name + " 到敌人列表。";
-                            }
-                            return "(" + modelName + ") Added " + name + " to enemy list.";
-                        }
-                    }
-                }
-                if (chinese) {
-                    return "（" + modelName + "）未找到玩家：" + name;
-                }
-                return "(" + modelName + ") Player not found: " + name;
-            }
-            
-            if (lower.startsWith("remove ") || lower.startsWith("移除 ")) {
-                String name = content.substring(content.indexOf(" ") + 1).trim();
-                if (EnemyList.INSTANCE != null) {
-                    for (var enemy : EnemyList.INSTANCE.getEnemies()) {
-                        if (enemy.name.equalsIgnoreCase(name)) {
-                            EnemyList.INSTANCE.removeEnemy(enemy.uuid);
-                            if (chinese) {
-                                return "（" + modelName + "）已从敌人列表移除 " + name + "。";
-                            }
-                            return "(" + modelName + ") Removed " + name + " from enemy list.";
-                        }
-                    }
-                }
-                if (chinese) {
-                    return "（" + modelName + "）敌人列表中未找到：" + name;
-                }
-                return "(" + modelName + ") Not found in enemy list: " + name;
-            }
-            
-            if (lower.equals("clear") || lower.equals("清空")) {
-                if (EnemyList.INSTANCE != null) {
-                    EnemyList.INSTANCE.clearEnemies();
-                    // 重新添加 Router 作为默认敌人
-                    EnemyList.INSTANCE.addEnemyByName("Router");
-                    if (chinese) {
-                        return "（" + modelName + "）已清空敌人列表（Router 已保留）。";
-                    }
-                    return "(" + modelName + ") Enemy list cleared (Router kept).";
-                }
-            }
-            
-            if (lower.equals("list") || lower.equals("列表")) {
-                if (EnemyList.INSTANCE != null) {
-                    var enemies = EnemyList.INSTANCE.getEnemies();
-                    if (enemies.isEmpty()) {
-                        if (chinese) {
-                            return "（" + modelName + "）敌人列表为空。";
-                        }
-                        return "(" + modelName + ") Enemy list is empty.";
-                    }
-                    StringBuilder sb = new StringBuilder();
-                    if (chinese) {
-                        sb.append("（").append(modelName).append("）敌人列表：");
-                    } else {
-                        sb.append("(").append(modelName).append(") Enemies: ");
-                    }
-                    for (int i = 0; i < enemies.size(); i++) {
-                        if (i > 0) sb.append(", ");
-                        sb.append(enemies.get(i).name);
-                    }
-                    return sb.toString();
-                }
-            }
-        }
-        
+
         // 普通 AI 回复
         if (chinese) {
             if (content.contains("你好") || lower.contains("hi") || lower.contains("hello")) {

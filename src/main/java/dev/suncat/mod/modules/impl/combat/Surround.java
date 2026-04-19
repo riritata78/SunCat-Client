@@ -10,6 +10,8 @@ import dev.suncat.mod.modules.impl.exploit.*;
 import dev.suncat.api.utils.combat.*;
 import dev.suncat.api.utils.world.*;
 import dev.suncat.mod.modules.impl.movement.*;
+import dev.suncat.mod.modules.impl.movement.ElytraFly;
+import net.minecraft.component.DataComponentTypes;
 import dev.suncat.api.events.impl.*;
 import dev.suncat.mod.modules.impl.player.*;
 import java.util.*;
@@ -65,6 +67,7 @@ public class Surround extends Module
     private final BooleanSetting packetPlace;
     private final BooleanSetting breakCrystal;
     private final BooleanSetting eatPause;
+    private final BooleanSetting allowEating;
     private final BooleanSetting center;
     private final BooleanSetting inventory;
     private final BooleanSetting enderChest;
@@ -110,7 +113,8 @@ public class Surround extends Module
         this.timer = new Timer();
         this.packetPlace = this.add(new BooleanSetting("PacketPlace", true, () -> this.page.is(Page.General)));
         this.breakCrystal = this.add(new BooleanSetting("Break", true, () -> this.page.is(Page.General)).setParent());
-        this.eatPause = this.add(new BooleanSetting("EatingPause", true, () -> this.page.is(Page.General) && this.breakCrystal.isOpen()));
+        this.eatPause = this.add(new BooleanSetting("EatingPause", true, () -> this.page.is(Page.General) && this.breakCrystal.isOpen()).setParent());
+        this.allowEating = this.add(new BooleanSetting("AllowEating", false, () -> this.page.is(Page.General) && this.breakCrystal.isOpen() && this.eatPause.isOpen()));
         this.center = this.add(new BooleanSetting("Center", true, () -> this.page.is(Page.General)));
         this.inventory = this.add(new BooleanSetting("InventorySwap", true, () -> this.page.is(Page.General)));
         this.enderChest = this.add(new BooleanSetting("EnderChest", true, () -> this.page.is(Page.General)));
@@ -213,7 +217,7 @@ public class Surround extends Module
         if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) {
             return;
         }
-        if (this.usingPause.getValue() && Surround.mc.player.isUsingItem()) {
+        if (this.usingPause.getValue() && Surround.mc.player.isUsingItem() && !(Surround.mc.player.getActiveItem().getComponents().contains(DataComponentTypes.FOOD) && this.allowEating.getValue())) {
             return;
         }
         if (!this.inAir.getValue() && !Surround.mc.player.isOnGround()) {
@@ -295,7 +299,7 @@ public class Surround extends Module
         for (final BlockPos pos : this.surroundBlocks) {
             final Entity crystal = (Entity)Surround.mc.world.getEntitiesByClass(EndCrystalEntity.class, new Box(pos), e -> true).stream().findFirst().orElse(null);
             if (crystal != null) {
-                CombatUtil.attackCrystal(pos, this.rotate.getValue(), this.eatPause.getValue());
+                CombatUtil.attackCrystal(pos, this.rotate.getValue(), (this.eatPause.getValue() && !Surround.mc.player.getActiveItem().getComponents().contains(DataComponentTypes.FOOD)) || (!this.eatPause.getValue()));
             }
         }
     }
@@ -390,7 +394,12 @@ public class Surround extends Module
     }
     
     private boolean shouldYawStep() {
-        return (this.whenElytra.getValue() || (!Surround.mc.player.isFallFlying() && (!ElytraFly.INSTANCE.isOn() || !ElytraFly.INSTANCE.isFallFlying()))) && this.yawStep.getValue() && !Velocity.INSTANCE.noRotation();
+        // 检查是否使用ElytraFly飞行
+        boolean isElytraFlying = ElytraFly.INSTANCE != null && ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.isFallFlying();
+        // 检查是否使用EFly飞行
+        boolean isEFlyFlying = EFly.INSTANCE != null && EFly.INSTANCE.isOn() && EFly.INSTANCE.isFallFlying();
+        
+        return (this.whenElytra.getValue() || (!Surround.mc.player.isFallFlying() && !isElytraFlying && !isEFlyFlying)) && this.yawStep.getValue() && !Velocity.INSTANCE.noRotation();
     }
     
     @EventListener(priority = -1)
@@ -449,7 +458,7 @@ public class Surround extends Module
             return;
         }
         if (this.breakCrystal.getValue()) {
-            CombatUtil.attackCrystal(pos, this.rotate.getValue(), this.eatPause.getValue());
+            CombatUtil.attackCrystal(pos, this.rotate.getValue(), this.eatPause.getValue() && !Surround.mc.player.getActiveItem().getItem().getComponents().contains(DataComponentTypes.FOOD));
         }
         else if (BlockUtil.hasEntity(pos, false)) {
             return;

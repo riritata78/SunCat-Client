@@ -29,12 +29,12 @@ extends Module {
 
     @Override
     public void disable() {
-        this.state = true;
+        this.state = false;
     }
 
     @Override
     public boolean isOn() {
-        return true;
+        return this.state;
     }
 
     public Color getColor() {
@@ -54,4 +54,3 @@ extends Module {
         Rainbow
     }
 }
-

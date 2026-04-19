@@ -1,6 +1,6 @@
 /*
  * Decompiled with CFR 0.152.
- * 
+ *
  * Could not load the following classes:
  *  com.mojang.blaze3d.systems.RenderSystem
  *  net.minecraft.client.font.TextRenderer$TextLayerType
@@ -94,7 +94,7 @@ extends Module {
     final BooleanSetting pingConfig = this.add(new BooleanSetting("Ping", true));
     final BooleanSetting healthConfig = this.add(new BooleanSetting("Health", true));
     final BooleanSetting totemsConfig = this.add(new BooleanSetting("Totems", false));
-    final BooleanSetting resistanceConfig = this.add(new BooleanSetting("Resistance", false));  // 显示神龟剩余时间
+    final BooleanSetting potionsConfig = this.add(new BooleanSetting("Potions", true).setParent());
     final SliderSetting scaleConfig = this.add(new SliderSetting("Scale", 1.0, 0.0, 3.0, 0.1));
     final BooleanSetting factorConfig = this.add(new BooleanSetting("Factor", true).setParent());
     final SliderSetting scalingConfig = this.add(new SliderSetting("Scaling", 1.0, 0.0, 3.0, 0.1, this.factorConfig::isOpen));
@@ -332,31 +332,48 @@ extends Module {
             String phealth = this.df.format(health);
             info.append(hcolor);
             info.append(phealth);
-            info.append(" ");
+info.append(" ");
         }
         if (this.totemsConfig.getValue() && (totems = suncat.POP.getPop(player)) > 0) {
             Formatting c = TextRadar.getPopColor(totems);
             info.append(c);
             info.append(-totems);
+            // Show remaining time if tracking is available
+            long remaining = suncat.POP.getRemainingPopTime(player);
+            if (remaining > 0) {
+                int seconds = (int) (remaining / 1000);
+                info.append(Formatting.GRAY);
+                info.append("(").append(seconds).append("s)");
+            }
             info.append(" ");
         }
-        // 显示抗性提升（神龟）- Alien 风格实现
-        if (this.resistanceConfig.getValue() && player.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE)) {
-            var resistanceEffect = player.getStatusEffect(net.minecraft.entity.effect.StatusEffects.RESISTANCE);
-            if (resistanceEffect != null) {
-                int ticks = resistanceEffect.getDuration();
-                int seconds = ticks / 20;
-                int amplifier = resistanceEffect.getAmplifier();
-
-                info.append(Formatting.BLUE);
-                info.append("Lv.");
-                info.append(amplifier + 1);
-                info.append(" ");
-                info.append(seconds + 1);
-                info.append("s ");
-            }
+        if (this.potionsConfig.getValue()) {
+            this.appendPotion(info, player, net.minecraft.entity.effect.StatusEffects.SPEED.value(), "S", Formatting.AQUA);
+            this.appendPotion(info, player, net.minecraft.entity.effect.StatusEffects.STRENGTH.value(), "Str", Formatting.RED);
+            this.appendPotion(info, player, net.minecraft.entity.effect.StatusEffects.RESISTANCE.value(), "Res", Formatting.BLUE);
+            this.appendPotion(info, player, net.minecraft.entity.effect.StatusEffects.INVISIBILITY.value(), "Inv", Formatting.GRAY);
+            this.appendPotion(info, player, net.minecraft.entity.effect.StatusEffects.JUMP_BOOST.value(), "Jmp", Formatting.GREEN);
+            this.appendPotion(info, player, net.minecraft.entity.effect.StatusEffects.WEAKNESS.value(), "Wk", Formatting.DARK_GRAY);
+            this.appendPotion(info, player, net.minecraft.entity.effect.StatusEffects.REGENERATION.value(), "Reg", Formatting.LIGHT_PURPLE);
+            this.appendPotion(info, player, net.minecraft.entity.effect.StatusEffects.SLOWNESS.value(), "Slw", Formatting.GRAY);
         }
         return info.toString().trim();
+    }
+
+    private void appendPotion(StringBuilder info, PlayerEntity player, net.minecraft.entity.effect.StatusEffect effect, String shortName, Formatting color) {
+        net.minecraft.registry.entry.RegistryEntry<net.minecraft.entity.effect.StatusEffect> entry = net.minecraft.registry.entry.RegistryEntry.of(effect);
+        if (player.hasStatusEffect(entry)) {
+            var e = player.getStatusEffect(entry);
+            if (e != null) {
+                int sec = e.getDuration() / 20;
+                int lvl = e.getAmplifier() + 1;
+                info.append(color);
+                info.append(shortName);
+                if (lvl > 1) info.append(lvl);
+                if (sec > 0) info.append(sec + "s ");
+                else info.append(" ");
+            }
+        }
     }
 
     private String getEntityPing(PlayerEntity entity) {
@@ -388,4 +405,3 @@ extends Module {
         return this.colorConfig.getValue().getRGB();
     }
 }
-

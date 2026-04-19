@@ -1,0 +1,176 @@
+{
+  "mappings": {
+    "org/ladysnake/satin/mixin/client/AccessiblePassesShaderEffect": {
+      "passes": "field_1497:Ljava/util/List;"
+    },
+    "org/ladysnake/satin/mixin/client/blockrenderlayer/RenderLayerMixin": {
+      "getBlockLayers": "Lnet/minecraft/class_1921;method_22720()Ljava/util/List;"
+    },
+    "org/ladysnake/satin/mixin/client/blockrenderlayer/WorldRendererMixin": {
+      "Lnet/minecraft/client/render/DimensionEffects;isDarkened()Z": "Lnet/minecraft/class_5294;method_29993()Z",
+      "Lnet/minecraft/client/render/WorldRenderer;renderLayer(Lnet/minecraft/client/render/RenderLayer;DDDLorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V": "Lnet/minecraft/class_761;method_3251(Lnet/minecraft/class_1921;DDDLorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V",
+      "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V": "Lnet/minecraft/class_3695;method_15405(Ljava/lang/String;)V",
+      "render": "Lnet/minecraft/class_761;method_22710(Lnet/minecraft/class_9779;ZLnet/minecraft/class_4184;Lnet/minecraft/class_757;Lnet/minecraft/class_765;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V"
+    },
+    "org/ladysnake/satin/mixin/client/event/GameRendererMixin": {
+      "Lnet/minecraft/client/render/WorldRenderer;drawEntityOutlinesFramebuffer()V": "Lnet/minecraft/class_761;method_3254()V",
+      "loadPrograms": "Lnet/minecraft/class_757;method_34538(Lnet/minecraft/class_5912;)V",
+      "onCameraEntitySet": "Lnet/minecraft/class_757;method_3167(Lnet/minecraft/class_1297;)V",
+      "render": "Lnet/minecraft/class_757;method_3192(Lnet/minecraft/class_9779;Z)V"
+    },
+    "org/ladysnake/satin/mixin/client/event/MinecraftClientMixin": {
+      "onResolutionChanged": "Lnet/minecraft/class_310;method_15993()V"
+    },
+    "org/ladysnake/satin/mixin/client/event/WorldRendererMixin": {
+      "Lcom/mojang/blaze3d/systems/RenderSystem;depthMask(Z)V": "Lcom/mojang/blaze3d/systems/RenderSystem;depthMask(Z)V",
+      "Lnet/minecraft/client/gl/PostEffectProcessor;render(F)V": "Lnet/minecraft/class_279;method_1258(F)V",
+      "Lnet/minecraft/client/render/WorldRenderer;transparencyPostProcessor:Lnet/minecraft/client/gl/PostEffectProcessor;": "Lnet/minecraft/class_761;field_25279:Lnet/minecraft/class_279;",
+      "render": "Lnet/minecraft/class_761;method_22710(Lnet/minecraft/class_9779;ZLnet/minecraft/class_4184;Lnet/minecraft/class_757;Lnet/minecraft/class_765;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V"
+    },
+    "org/ladysnake/satin/mixin/client/gl/CoreShaderMixin": {
+      "loadedSamplerIds": "field_29489:Ljava/util/List;",
+      "samplerNames": "field_29488:Ljava/util/List;"
+    },
+    "org/ladysnake/satin/mixin/client/gl/CustomFormatFramebufferMixin": {
+      "<init>": "Lnet/minecraft/class_276;<init>(Z)V",
+      "Lcom/mojang/blaze3d/platform/GlStateManager;_glBindFramebuffer(II)V": "Lcom/mojang/blaze3d/platform/GlStateManager;_glBindFramebuffer(II)V",
+      "Lcom/mojang/blaze3d/platform/GlStateManager;_texImage2D(IIIIIIIILjava/nio/IntBuffer;)V": "Lcom/mojang/blaze3d/platform/GlStateManager;_texImage2D(IIIIIIIILjava/nio/IntBuffer;)V",
+      "Lnet/minecraft/client/gl/Framebuffer;setTexFilter(IZ)V": "Lnet/minecraft/class_276;method_1232(IZ)V",
+      "initFbo": "Lnet/minecraft/class_276;method_1231(IIZ)V"
+    },
+    "org/ladysnake/satin/mixin/client/gl/CustomFormatPostEffectProcessorMixin": {
+      "Lnet/minecraft/client/gl/PostEffectProcessor;addTarget(Ljava/lang/String;II)V": "Lnet/minecraft/class_279;method_1261(Ljava/lang/String;II)V",
+      "Lnet/minecraft/util/InvalidHierarchicalFileException;wrap(Ljava/lang/Exception;)Lnet/minecraft/util/InvalidHierarchicalFileException;": "Lnet/minecraft/class_2973;method_12856(Ljava/lang/Exception;)Lnet/minecraft/class_2973;",
+      "parseEffect": "Lnet/minecraft/class_279;method_1256(Lnet/minecraft/class_1060;Lnet/minecraft/class_2960;)V",
+      "parseTarget": "Lnet/minecraft/class_279;method_1265(Lcom/google/gson/JsonElement;)V"
+    },
+    "org/ladysnake/satin/mixin/client/gl/DepthGlFramebufferMixin": {
+      "Lnet/minecraft/client/gl/Framebuffer;depthAttachment:I": "Lnet/minecraft/class_276;field_1474:I",
+      "delete": "Lnet/minecraft/class_276;method_1238()V",
+      "initFbo": "Lnet/minecraft/class_276;method_1231(IIZ)V"
+    },
+    "org/ladysnake/satin/mixin/client/gl/GlUniformMixin": {
+      "upload": "Lnet/minecraft/class_284;method_1300()V"
+    },
+    "org/ladysnake/satin/mixin/client/gl/JsonEffectGlShaderMixin": {
+      "<init>": "Lnet/minecraft/class_280;<init>(Lnet/minecraft/class_5912;Ljava/lang/String;)V",
+      "loadEffect": "Lnet/minecraft/class_280;method_16036(Lnet/minecraft/class_5912;Lnet/minecraft/class_281$class_282;Ljava/lang/String;)Lnet/minecraft/class_5937;",
+      "net/minecraft/util/Identifier.ofVanilla(Ljava/lang/String;)Lnet/minecraft/util/Identifier;": "Lnet/minecraft/class_2960;method_60656(Ljava/lang/String;)Lnet/minecraft/class_2960;",
+      "samplerLocations": "field_1506:Ljava/util/List;",
+      "samplerNames": "field_1503:Ljava/util/List;"
+    },
+    "org/ladysnake/satin/mixin/client/render/RenderLayerAccessor": {
+      "of": "method_24049(Ljava/lang/String;Lnet/minecraft/class_293;Lnet/minecraft/class_293$class_5596;IZZLnet/minecraft/class_1921$class_4688;)Lnet/minecraft/class_1921$class_4687;",
+      "translucent": "field_21402:Z"
+    },
+    "org/ladysnake/satin/mixin/client/render/RenderLayerMixin$MultiPhaseParametersAccessor": {
+      "cull": "field_21412:Lnet/minecraft/class_4668$class_4671;",
+      "depthTest": "field_21411:Lnet/minecraft/class_4668$class_4672;",
+      "layering": "field_21416:Lnet/minecraft/class_4668$class_4675;",
+      "lightmap": "field_21413:Lnet/minecraft/class_4668$class_4676;",
+      "lineWidth": "field_21420:Lnet/minecraft/class_4668$class_4677;",
+      "outlineMode": "field_21852:Lnet/minecraft/class_1921$class_4750;",
+      "overlay": "field_21414:Lnet/minecraft/class_4668$class_4679;",
+      "program": "field_29461:Lnet/minecraft/class_4668$class_5942;",
+      "target": "field_21417:Lnet/minecraft/class_4668$class_4678;",
+      "texture": "field_21406:Lnet/minecraft/class_4668$class_5939;",
+      "texturing": "field_21418:Lnet/minecraft/class_4668$class_4684;",
+      "transparency": "field_21407:Lnet/minecraft/class_4668$class_4685;",
+      "writeMaskState": "field_21419:Lnet/minecraft/class_4668$class_4686;"
+    },
+    "org/ladysnake/satin/mixin/client/render/RenderPhaseAccessor": {
+      "name": "field_21363:Ljava/lang/String;"
+    },
+    "org/ladysnake/satin/mixin/client/render/WorldRendererMixin": {
+      "reload()V": "Lnet/minecraft/class_761;method_3279()V"
+    }
+  },
+  "data": {
+    "named:intermediary": {
+      "org/ladysnake/satin/mixin/client/AccessiblePassesShaderEffect": {
+        "passes": "field_1497:Ljava/util/List;"
+      },
+      "org/ladysnake/satin/mixin/client/blockrenderlayer/RenderLayerMixin": {
+        "getBlockLayers": "Lnet/minecraft/class_1921;method_22720()Ljava/util/List;"
+      },
+      "org/ladysnake/satin/mixin/client/blockrenderlayer/WorldRendererMixin": {
+        "Lnet/minecraft/client/render/DimensionEffects;isDarkened()Z": "Lnet/minecraft/class_5294;method_29993()Z",
+        "Lnet/minecraft/client/render/WorldRenderer;renderLayer(Lnet/minecraft/client/render/RenderLayer;DDDLorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V": "Lnet/minecraft/class_761;method_3251(Lnet/minecraft/class_1921;DDDLorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V",
+        "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V": "Lnet/minecraft/class_3695;method_15405(Ljava/lang/String;)V",
+        "render": "Lnet/minecraft/class_761;method_22710(Lnet/minecraft/class_9779;ZLnet/minecraft/class_4184;Lnet/minecraft/class_757;Lnet/minecraft/class_765;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V"
+      },
+      "org/ladysnake/satin/mixin/client/event/GameRendererMixin": {
+        "Lnet/minecraft/client/render/WorldRenderer;drawEntityOutlinesFramebuffer()V": "Lnet/minecraft/class_761;method_3254()V",
+        "loadPrograms": "Lnet/minecraft/class_757;method_34538(Lnet/minecraft/class_5912;)V",
+        "onCameraEntitySet": "Lnet/minecraft/class_757;method_3167(Lnet/minecraft/class_1297;)V",
+        "render": "Lnet/minecraft/class_757;method_3192(Lnet/minecraft/class_9779;Z)V"
+      },
+      "org/ladysnake/satin/mixin/client/event/MinecraftClientMixin": {
+        "onResolutionChanged": "Lnet/minecraft/class_310;method_15993()V"
+      },
+      "org/ladysnake/satin/mixin/client/event/WorldRendererMixin": {
+        "Lcom/mojang/blaze3d/systems/RenderSystem;depthMask(Z)V": "Lcom/mojang/blaze3d/systems/RenderSystem;depthMask(Z)V",
+        "Lnet/minecraft/client/gl/PostEffectProcessor;render(F)V": "Lnet/minecraft/class_279;method_1258(F)V",
+        "Lnet/minecraft/client/render/WorldRenderer;transparencyPostProcessor:Lnet/minecraft/client/gl/PostEffectProcessor;": "Lnet/minecraft/class_761;field_25279:Lnet/minecraft/class_279;",
+        "render": "Lnet/minecraft/class_761;method_22710(Lnet/minecraft/class_9779;ZLnet/minecraft/class_4184;Lnet/minecraft/class_757;Lnet/minecraft/class_765;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V"
+      },
+      "org/ladysnake/satin/mixin/client/gl/CoreShaderMixin": {
+        "loadedSamplerIds": "field_29489:Ljava/util/List;",
+        "samplerNames": "field_29488:Ljava/util/List;"
+      },
+      "org/ladysnake/satin/mixin/client/gl/CustomFormatFramebufferMixin": {
+        "<init>": "Lnet/minecraft/class_276;<init>(Z)V",
+        "Lcom/mojang/blaze3d/platform/GlStateManager;_glBindFramebuffer(II)V": "Lcom/mojang/blaze3d/platform/GlStateManager;_glBindFramebuffer(II)V",
+        "Lcom/mojang/blaze3d/platform/GlStateManager;_texImage2D(IIIIIIIILjava/nio/IntBuffer;)V": "Lcom/mojang/blaze3d/platform/GlStateManager;_texImage2D(IIIIIIIILjava/nio/IntBuffer;)V",
+        "Lnet/minecraft/client/gl/Framebuffer;setTexFilter(IZ)V": "Lnet/minecraft/class_276;method_1232(IZ)V",
+        "initFbo": "Lnet/minecraft/class_276;method_1231(IIZ)V"
+      },
+      "org/ladysnake/satin/mixin/client/gl/CustomFormatPostEffectProcessorMixin": {
+        "Lnet/minecraft/client/gl/PostEffectProcessor;addTarget(Ljava/lang/String;II)V": "Lnet/minecraft/class_279;method_1261(Ljava/lang/String;II)V",
+        "Lnet/minecraft/util/InvalidHierarchicalFileException;wrap(Ljava/lang/Exception;)Lnet/minecraft/util/InvalidHierarchicalFileException;": "Lnet/minecraft/class_2973;method_12856(Ljava/lang/Exception;)Lnet/minecraft/class_2973;",
+        "parseEffect": "Lnet/minecraft/class_279;method_1256(Lnet/minecraft/class_1060;Lnet/minecraft/class_2960;)V",
+        "parseTarget": "Lnet/minecraft/class_279;method_1265(Lcom/google/gson/JsonElement;)V"
+      },
+      "org/ladysnake/satin/mixin/client/gl/DepthGlFramebufferMixin": {
+        "Lnet/minecraft/client/gl/Framebuffer;depthAttachment:I": "Lnet/minecraft/class_276;field_1474:I",
+        "delete": "Lnet/minecraft/class_276;method_1238()V",
+        "initFbo": "Lnet/minecraft/class_276;method_1231(IIZ)V"
+      },
+      "org/ladysnake/satin/mixin/client/gl/GlUniformMixin": {
+        "upload": "Lnet/minecraft/class_284;method_1300()V"
+      },
+      "org/ladysnake/satin/mixin/client/gl/JsonEffectGlShaderMixin": {
+        "<init>": "Lnet/minecraft/class_280;<init>(Lnet/minecraft/class_5912;Ljava/lang/String;)V",
+        "loadEffect": "Lnet/minecraft/class_280;method_16036(Lnet/minecraft/class_5912;Lnet/minecraft/class_281$class_282;Ljava/lang/String;)Lnet/minecraft/class_5937;",
+        "net/minecraft/util/Identifier.ofVanilla(Ljava/lang/String;)Lnet/minecraft/util/Identifier;": "Lnet/minecraft/class_2960;method_60656(Ljava/lang/String;)Lnet/minecraft/class_2960;",
+        "samplerLocations": "field_1506:Ljava/util/List;",
+        "samplerNames": "field_1503:Ljava/util/List;"
+      },
+      "org/ladysnake/satin/mixin/client/render/RenderLayerAccessor": {
+        "of": "method_24049(Ljava/lang/String;Lnet/minecraft/class_293;Lnet/minecraft/class_293$class_5596;IZZLnet/minecraft/class_1921$class_4688;)Lnet/minecraft/class_1921$class_4687;",
+        "translucent": "field_21402:Z"
+      },
+      "org/ladysnake/satin/mixin/client/render/RenderLayerMixin$MultiPhaseParametersAccessor": {
+        "cull": "field_21412:Lnet/minecraft/class_4668$class_4671;",
+        "depthTest": "field_21411:Lnet/minecraft/class_4668$class_4672;",
+        "layering": "field_21416:Lnet/minecraft/class_4668$class_4675;",
+        "lightmap": "field_21413:Lnet/minecraft/class_4668$class_4676;",
+        "lineWidth": "field_21420:Lnet/minecraft/class_4668$class_4677;",
+        "outlineMode": "field_21852:Lnet/minecraft/class_1921$class_4750;",
+        "overlay": "field_21414:Lnet/minecraft/class_4668$class_4679;",
+        "program": "field_29461:Lnet/minecraft/class_4668$class_5942;",
+        "target": "field_21417:Lnet/minecraft/class_4668$class_4678;",
+        "texture": "field_21406:Lnet/minecraft/class_4668$class_5939;",
+        "texturing": "field_21418:Lnet/minecraft/class_4668$class_4684;",
+        "transparency": "field_21407:Lnet/minecraft/class_4668$class_4685;",
+        "writeMaskState": "field_21419:Lnet/minecraft/class_4668$class_4686;"
+      },
+      "org/ladysnake/satin/mixin/client/render/RenderPhaseAccessor": {
+        "name": "field_21363:Ljava/lang/String;"
+      },
+      "org/ladysnake/satin/mixin/client/render/WorldRendererMixin": {
+        "reload()V": "Lnet/minecraft/class_761;method_3279()V"
+      }
+    }
+  }
+}

@@ -37,10 +37,10 @@ extends Module {
     public static Chams INSTANCE;
     public final BooleanSetting crystal = this.add(new BooleanSetting("Crystal", true).setParent());
     public final BooleanSetting custom = this.add(new BooleanSetting("Custom", false, this.crystal::isOpen).setParent());
-    public final BooleanSetting depth = this.add(new BooleanSetting("Depth", false, () -> this.crystal.isOpen() && this.custom.isOpen()));
-    public final BooleanSetting chamsTexture = this.add(new BooleanSetting("ChamsTexture", true, () -> this.crystal.isOpen() && this.custom.isOpen()));
-    public final ColorSetting fill = this.add(new ColorSetting("Fill", new Color(255, 255, 255, 100), () -> this.crystal.isOpen() && this.custom.isOpen()).injectBoolean(false));
-    public final ColorSetting line = this.add(new ColorSetting("Line", new Color(255, 255, 255, 100), () -> this.crystal.isOpen() && this.custom.isOpen()).injectBoolean(false));
+    public final BooleanSetting depth = this.add(new BooleanSetting("Depth", false, () -> this.crystal.isOpen() && this.custom.getValue()));
+    public final BooleanSetting chamsTexture = this.add(new BooleanSetting("ChamsTexture", true, () -> this.crystal.isOpen() && this.custom.getValue()));
+    public final ColorSetting fill = this.add(new ColorSetting("Fill", new Color(255, 255, 255, 100), () -> this.crystal.isOpen() && this.custom.getValue()).injectBoolean(false));
+    public final ColorSetting line = this.add(new ColorSetting("Line", new Color(255, 255, 255, 100), () -> this.crystal.isOpen() && this.custom.getValue()).injectBoolean(false));
     public final ColorSetting core = this.add(new ColorSetting("Core", new Color(255, 255, 255, 255), this.crystal::isOpen).injectBoolean(true));
     public final ColorSetting outerFrame = this.add(new ColorSetting("OuterFrame", new Color(255, 255, 255, 255), this.crystal::isOpen).injectBoolean(true));
     public final ColorSetting innerFrame = this.add(new ColorSetting("InnerFrame", new Color(255, 255, 255, 255), this.crystal::isOpen).injectBoolean(true));

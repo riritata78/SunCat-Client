@@ -1,17 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- *
- * Could not load the following classes:
- *  net.minecraft.client.MinecraftClient
- *  net.minecraft.entity.EntityPose
- *  net.minecraft.entity.player.PlayerEntity
- *  net.minecraft.util.math.Vec3d
- *  org.spongepowered.asm.mixin.Mixin
- *  org.spongepowered.asm.mixin.injection.At
- *  org.spongepowered.asm.mixin.injection.Inject
- *  org.spongepowered.asm.mixin.injection.callback.CallbackInfo
- *  org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable
- */
 package dev.suncat.asm.mixins;
 
 import dev.suncat.suncat;
@@ -19,8 +5,6 @@ import dev.suncat.api.events.Event;
 import dev.suncat.api.events.impl.JumpEvent;
 import dev.suncat.api.events.impl.TravelEvent;
 import dev.suncat.api.utils.Wrapper;
-import dev.suncat.asm.accessors.ILivingEntity;
-import dev.suncat.core.impl.RotationManager;
 import dev.suncat.mod.modules.impl.client.ClientSetting;
 import dev.suncat.mod.modules.impl.player.InteractTweaks;
 import net.minecraft.client.MinecraftClient;
@@ -42,14 +26,14 @@ public abstract class MixinPlayerEntity implements Wrapper {
     @Inject(method = "updatePose", at = @At("HEAD"), cancellable = true)
     private void onUpdatePose(CallbackInfo ci) {
         // 只有是本地玩家且开启站立飞行时才拦截
-        if ((Object) this == MinecraftClient.getInstance().player
+        if ((Object) this == MinecraftClient.getInstance().player 
             && dev.suncat.mod.modules.impl.movement.EFly.isStandingFly()) {
-
+            
             // 这里的 (PlayerEntity)(Object)this 是为了能调用 setPose 方法
             // setPose 是 Entity 类的公共方法，PlayerEntity 继承了它，所以这样写不会崩
             ((PlayerEntity)(Object)this).setPose(EntityPose.STANDING);
-
-            // 直接取消原版方法的执行，原版就不会再去判断是否该"趴下"了
+            
+            // 直接取消原版方法的执行，原版就不会再去判断是否该“趴下”了
             ci.cancel();
         }
     }
@@ -104,4 +88,3 @@ public abstract class MixinPlayerEntity implements Wrapper {
         suncat.EVENT_BUS.post(TravelEvent.get(Event.Stage.Post, (PlayerEntity)(Object)this));
     }
 }
-

@@ -102,31 +102,49 @@ public class LongJump extends Module
             if (mc.player.isFallFlying() || mc.player.isTouchingWater() || mc.player.isInLava()) {
                 return;
             }
+            
+            // 重置检测：如果玩家在地面上且没有移动输入，重置 stage
+            if (mc.player.isOnGround() && mc.player.input.movementForward == 0.0f && mc.player.input.movementSideways == 0.0f) {
+                this.stage = 0;
+                this.lastDist = 0.0;
+                return;
+            }
+            
+            // 在地面上且有移动输入时，重置 stage 以重新触发跳跃
+            if (mc.player.isOnGround() && (mc.player.input.movementForward != 0.0f || mc.player.input.movementSideways != 0.0f) && this.stage > 2) {
+                this.stage = 0;
+                this.lastDist = 0.0;
+            }
+            
             switch (this.stage) {
                 case 0: {
                     ++this.stage;
                     this.lastDist = 0.0;
                     break;
                 }
+                case 1: {
+                    this.moveSpeed = 2.149 * this.getBaseMoveSpeed();
+                    ++this.stage;
+                    break;
+                }
                 case 2: {
                     double motionY = 0.40123128;
-                    if ((mc.player.input.movementForward != 0.0f || mc.player.input.movementSideways != 0.0f) && mc.player.isOnGround()) {
-                        if (mc.player.hasStatusEffect(StatusEffects.SPEED)) {
-                            motionY += (mc.player.getStatusEffect(StatusEffects.SPEED).getAmplifier() + 1) * 0.1f;
-                        }
-                        event.setY(motionY);
-                        this.moveSpeed *= 2.149;
-                        break;
+                    if (mc.player.hasStatusEffect(StatusEffects.SPEED)) {
+                        motionY += (mc.player.getStatusEffect(StatusEffects.SPEED).getAmplifier() + 1) * 0.1f;
                     }
+                    event.setY(motionY);
+                    this.moveSpeed *= 2.149;
+                    ++this.stage;
                     break;
                 }
                 case 3: {
                     this.moveSpeed = this.lastDist - 0.76 * (this.lastDist - this.getBaseMoveSpeed());
+                    ++this.stage;
                     break;
                 }
                 default: {
-                    if (this.stage > 0 && (mc.world.getCollisions(mc.player, mc.player.getBoundingBox().offset(0.0, mc.player.getY() - mc.player.getBoundingBox().minY, 0.0)).iterator().hasNext() || mc.player.horizontalCollision)) {
-                        this.stage = ((mc.player.input.movementForward != 0.0f || mc.player.input.movementSideways != 0.0f) ? 1 : 0);
+                    if (mc.world.getCollisions(mc.player, mc.player.getBoundingBox().offset(0.0, mc.player.getY() - mc.player.getBoundingBox().minY, 0.0)).iterator().hasNext() || mc.player.horizontalCollision) {
+                        this.stage = 1;
                     }
                     this.moveSpeed = this.lastDist - this.lastDist / 159.0;
                     break;
@@ -146,7 +164,6 @@ public class LongJump extends Module
             }
             event.setX((forward * this.moveSpeed * -Math.sin(Math.toRadians(yaw)) + strafe * this.moveSpeed * Math.cos(Math.toRadians(yaw))) * 0.99);
             event.setZ((forward * this.moveSpeed * Math.cos(Math.toRadians(yaw)) - strafe * this.moveSpeed * -Math.sin(Math.toRadians(yaw))) * 0.99);
-            ++this.stage;
         }
     }
 

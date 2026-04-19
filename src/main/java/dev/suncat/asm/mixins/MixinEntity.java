@@ -20,7 +20,7 @@ import dev.suncat.suncat;
 import dev.suncat.api.events.impl.LookDirectionEvent;
 import dev.suncat.api.events.impl.SprintEvent;
 import dev.suncat.api.utils.Wrapper;
-import dev.suncat.mod.modules.impl.movement.ElytraFly;
+// ElytraFly removed, use EFly instead
 import dev.suncat.mod.modules.impl.movement.Velocity;
 import dev.suncat.mod.modules.impl.render.NoRender;
 import dev.suncat.mod.modules.impl.render.ShaderModule;
@@ -97,12 +97,8 @@ public abstract class MixinEntity {
             return;
         }
 
-        // 下面是你原本就有的其他模块判断，保留即可
-        if (ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.mode.is(ElytraFly.Mode.Bounce)) {
-            cir.setReturnValue(EntityPose.STANDING);
-            return;
-        }
-
+        // ElytraFly removed, use EFly instead
+        
         if (dev.suncat.mod.modules.impl.movement.LongJump.INSTANCE.isOn() && dev.suncat.mod.modules.impl.movement.LongJump.INSTANCE.mode.is(dev.suncat.mod.modules.impl.movement.LongJump.Mode.Grim)) {
             cir.setReturnValue(EntityPose.STANDING);
             return;

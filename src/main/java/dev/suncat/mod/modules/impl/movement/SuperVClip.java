@@ -58,13 +58,13 @@ public class SuperVClip extends Module
             return;
         }
         if (this.onlyInBlock.getValue() && !this.isInBlock()) {
-            this.sendMessage("§c\u4e0d\u5728\u65b9\u5757\u5185\uff01\u8bf7\u7ad9\u5728\u65b9\u5757\u4e2d\u518d\u4f7f\u7528\u3002");
+
             if (this.autoDisable.getValue()) {
                 this.disable();
             }
             return;
         }
-        this.sendMessage("§aSuperVClip \u5df2\u542f\u7528 - \u6a21\u5f0f\uff1a" + this.mode.getValue().name());
+
     }
     
     @Override

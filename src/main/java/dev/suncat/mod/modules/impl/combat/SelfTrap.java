@@ -9,6 +9,7 @@ import dev.suncat.mod.modules.impl.exploit.*;
 import dev.suncat.api.utils.world.*;
 import dev.suncat.api.utils.combat.*;
 import dev.suncat.mod.modules.impl.movement.*;
+import dev.suncat.mod.modules.impl.movement.ElytraFly;
 import dev.suncat.api.events.impl.*;
 import dev.suncat.core.impl.*;
 import net.minecraft.*;
@@ -30,6 +31,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
+import net.minecraft.component.DataComponentTypes;
 import dev.suncat.api.utils.math.Rotation;
 import dev.suncat.mod.modules.Module;
 import net.minecraft.entity.Entity;
@@ -253,7 +255,7 @@ public class SelfTrap extends Module
         if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) {
             return;
         }
-        if (this.usingPause.getValue() && SelfTrap.mc.player.isUsingItem()) {
+        if (this.usingPause.getValue() && SelfTrap.mc.player.isUsingItem() && !SelfTrap.mc.player.getActiveItem().getComponents().contains(DataComponentTypes.FOOD)) {
             return;
         }
         if (!this.inAir.getValue() && !SelfTrap.mc.player.isOnGround()) {
@@ -383,12 +385,17 @@ public class SelfTrap extends Module
             if (crystal == null) {
                 continue;
             }
-            CombatUtil.attackCrystal(pos, this.rotate.getValue(), this.eatPause.getValue());
+            CombatUtil.attackCrystal(pos, this.rotate.getValue(), this.eatPause.getValue() && !SelfTrap.mc.player.getActiveItem().getItem().getComponents().contains(DataComponentTypes.FOOD));
         }
     }
     
     private boolean shouldYawStep() {
-        return (this.whenElytra.getValue() || (!SelfTrap.mc.player.isFallFlying() && (!ElytraFly.INSTANCE.isOn() || !ElytraFly.INSTANCE.isFallFlying()))) && this.yawStep.getValue() && !Velocity.INSTANCE.noRotation();
+        // 检查是否使用ElytraFly飞行
+        boolean isElytraFlying = ElytraFly.INSTANCE != null && ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.isFallFlying();
+        // 检查是否使用EFly飞行
+        boolean isEFlyFlying = EFly.INSTANCE != null && EFly.INSTANCE.isOn() && EFly.INSTANCE.isFallFlying();
+        
+        return (this.whenElytra.getValue() || (!SelfTrap.mc.player.isFallFlying() && !isElytraFlying && !isEFlyFlying)) && this.yawStep.getValue() && !Velocity.INSTANCE.noRotation();
     }
     
     @EventListener(priority = -1)
@@ -568,7 +575,7 @@ public class SelfTrap extends Module
             return;
         }
         if (this.breakCrystal.getValue()) {
-            CombatUtil.attackCrystal(pos, this.rotate.getValue(), this.eatPause.getValue());
+            CombatUtil.attackCrystal(pos, this.rotate.getValue(), this.eatPause.getValue() && !SelfTrap.mc.player.getActiveItem().getItem().getComponents().contains(DataComponentTypes.FOOD));
         }
         else if (BlockUtil.hasEntity(pos, false)) {
             return;

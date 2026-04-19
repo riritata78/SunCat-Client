@@ -53,7 +53,6 @@ import net.minecraft.entity.MovementType;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.FireworkRocketEntity;
-import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -105,7 +104,6 @@ extends Module {
     private final SliderSetting infiniteMinSpeed = this.add(new SliderSetting("InfiniteMinSpeed", 25.0, 10.0, 70.0, () -> this.mode.getValue() == Mode.Pitch));
     private final SliderSetting infiniteMaxHeight = this.add(new SliderSetting("InfiniteMaxHeight", 200, -50, 360, () -> this.mode.getValue() == Mode.Pitch));
     public final BooleanSetting releaseSneak = this.add(new BooleanSetting("ReleaseSneak", false));
-
     private final Timer instantFlyTimer = new Timer();
     boolean prev;
     float prePitch;
@@ -239,11 +237,6 @@ extends Module {
             return;
         }
         if (this.mode.is(Mode.Rotation)) {
-            // 当 TargetFollow 开启时，不干预 rotation，让它自己控制
-            if (dev.suncat.mod.modules.impl.movement.TargetFollow.INSTANCE != null &&
-                dev.suncat.mod.modules.impl.movement.TargetFollow.INSTANCE.isOn()) {
-                return;
-            }
             if (this.isFallFlying()) {
                 if (MovementUtil.isMoving()) {
                     if (ElytraFly.mc.options.jumpKey.isPressed()) {
@@ -285,7 +278,6 @@ extends Module {
     public void onUpdate(UpdateEvent event) {
         this.getInfinitePitch();
         this.flying = false;
-
         if (this.packet.getValue()) {
             this.hasElytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA) != -1;
         } else {
@@ -405,7 +397,6 @@ extends Module {
         if (ElytraFly.nullCheck()) {
             return;
         }
-
         if (this.mode.is(Mode.Bounce) && this.hasElytra) {
             if (this.autoJump.getValue()) {
                 ElytraFly.mc.options.jumpKey.setPressed(true);

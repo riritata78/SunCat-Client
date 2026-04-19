@@ -47,6 +47,7 @@ implements Wrapper {
     static int lastSelect = -1;
 
     public static void inventorySwap(int slot, int selectedSlot) {
+        if (slot < 0) return;
         if (slot == lastSlot) {
             InventoryUtil.switchToSlot(lastSelect);
             lastSlot = -1;

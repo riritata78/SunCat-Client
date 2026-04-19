@@ -53,8 +53,10 @@ public abstract class MixinWorldRenderer {
                     Wrapper.mc.getBufferBuilders().getEntityVertexConsumers().draw();
                     this.renderingEntity = false;
                 }
-                GL11.glEnable((int)32823);
-                GL11.glPolygonOffset((float)1.0f, (float)-1000000.0f);
+                // Disable depth test to render entity through walls
+                GL11.glDisable(GL11.GL_DEPTH_TEST);
+                // Also disable depth mask
+                GL11.glDepthMask(false);
                 this.renderingChams = true;
             } else {
                 this.renderingEntity = true;
@@ -66,8 +68,9 @@ public abstract class MixinWorldRenderer {
     private void injectChamsForEntityPost(Entity entity, double cameraX, double cameraY, double cameraZ, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, CallbackInfo ci) {
         if (Chams.INSTANCE.isOn() && Chams.INSTANCE.throughWall.getValue() && this.renderingChams) {
             Wrapper.mc.getBufferBuilders().getEntityVertexConsumers().draw();
-            GL11.glPolygonOffset((float)1.0f, (float)1000000.0f);
-            GL11.glDisable((int)32823);
+            // Re-enable depth test and depth mask
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glDepthMask(true);
             this.renderingChams = false;
         }
     }

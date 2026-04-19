@@ -31,6 +31,22 @@ public class PacketHudModule extends HudModule {
     }
 
     @Override
+    public void onEnable() {
+        this.sendCount.set(0);
+        this.receiveCount.set(0);
+        this.lastSendCount = 0;
+        this.lastReceiveCount = 0;
+    }
+
+    @Override
+    public void onDisable() {
+        this.sendCount.set(0);
+        this.receiveCount.set(0);
+        this.lastSendCount = 0;
+        this.lastReceiveCount = 0;
+    }
+
+    @Override
     public void onRender2D(DrawContext context, float tickDelta) {
         if (PacketHudModule.mc.player == null) {
             this.clearHudBounds();
