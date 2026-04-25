@@ -415,6 +415,12 @@ extends Screen {
             int mY = frame != null ? (int)frame.unitMouseY((int)mouseY) : (int)mouseY;
             this.hudPage.mouseReleased(mX, mY, releaseButton);
         }
+        // 释放鼠标时结束所有组件的拖动状态
+        for (Component component : this.getComponents()) {
+            if (component.drag) {
+                component.drag = false;
+            }
+        }
         // 释放鼠标时结束拖动
         if (this.searchBarDragging) {
             this.searchBarDragging = false;

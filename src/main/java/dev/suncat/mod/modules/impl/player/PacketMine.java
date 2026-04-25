@@ -129,7 +129,6 @@ extends Module {
     private final BooleanSetting instant = this.add(new BooleanSetting("Instant", false, () -> this.page.is(Page.General)));
     private final BooleanSetting wait = this.add(new BooleanSetting("Wait", true, () -> !this.instant.getValue() && this.page.is(Page.General)));
     private final BooleanSetting mineAir = this.add(new BooleanSetting("MineAir", true, () -> this.wait.getValue() && !this.instant.getValue() && this.page.is(Page.General)));
-    private final EnumSetting<SwitchMode> switchMode = this.add(new EnumSetting<SwitchMode>("SwitchMode", SwitchMode.Normal, () -> this.page.is(Page.General)));
     private final BooleanSetting hotBar = this.add(new BooleanSetting("HotbarSwap", false, () -> this.page.is(Page.General)));
     private final BooleanSetting doubleBreak = this.add(new BooleanSetting("DoubleBreak", true, () -> this.page.is(Page.General))).setParent();
     public final BooleanSetting autoSwitch = this.add(new BooleanSetting("AutoSwitch", true, () -> this.page.is(Page.General) && this.doubleBreak.isOpen()));
@@ -274,20 +273,12 @@ private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFee
             }
             if (index == -1 || PacketMine.mc.options.useKey.isPressed() || PacketMine.mc.options.attackKey.isPressed() || PacketMine.mc.player.isUsingItem() || !this.secondTimer.passedMs(this.getBreakTime(secondPos, index, this.start.getValue()))) {
                 if (this.swapped) {
-                    if (this.switchMode.is(SwitchMode.Silent)) {
-                        mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(this.mainSlot));
-                    } else {
-                        InventoryUtil.switchToSlot(this.mainSlot);
-                    }
+                    mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(this.mainSlot));
                     this.swapped = false;
                 }
             } else if (index != PacketMine.mc.player.getInventory().selectedSlot) {
                 this.mainSlot = PacketMine.mc.player.getInventory().selectedSlot;
-                if (this.switchMode.is(SwitchMode.Silent)) {
-                    mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(index));
-                } else {
-                    InventoryUtil.switchToSlot(index);
-                }
+                mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(index));
                 this.swapped = true;
             }
         }
@@ -470,9 +461,7 @@ private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFee
                     boolean bl = shouldSwitch = old + 36 != slot;
                 }
                 if (shouldSwitch) {
-                    if (this.switchMode.is(SwitchMode.Silent)) {
-                        mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(slot < 9 ? slot : slot - 36));
-                    } else if (this.hotBar.getValue()) {
+                    if (this.hotBar.getValue()) {
                         InventoryUtil.switchToSlot(slot);
                     } else {
                         PacketMine.mc.interactionManager.clickSlot(PacketMine.mc.player.currentScreenHandler.syncId, slot, old, SlotActionType.SWAP, (PlayerEntity)PacketMine.mc.player);
@@ -482,9 +471,7 @@ private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFee
                 this.switchBack = () -> {
                     if (this.endRotate.getValue() && !this.faceVector(this.breakPos.toCenterPos().offset(BlockUtil.getClickSide(this.breakPos), 0.5))) {
                         if (shouldSwitch) {
-                            if (this.switchMode.is(SwitchMode.Silent)) {
-                                mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(old));
-                            } else if (this.hotBar.getValue()) {
+                            if (this.hotBar.getValue()) {
                                 InventoryUtil.switchToSlot(old);
                             } else {
                                 PacketMine.mc.interactionManager.clickSlot(PacketMine.mc.player.currentScreenHandler.syncId, finalSlot, old, SlotActionType.SWAP, (PlayerEntity)PacketMine.mc.player);
@@ -498,9 +485,7 @@ private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFee
                         EntityUtil.swingHand(Hand.MAIN_HAND, this.swingMode.getValue());
                     }
                     if (shouldSwitch) {
-                        if (this.switchMode.is(SwitchMode.Silent)) {
-                            mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(old));
-                        } else if (this.hotBar.getValue()) {
+                        if (this.hotBar.getValue()) {
                             InventoryUtil.switchToSlot(old);
                         } else {
                             PacketMine.mc.interactionManager.clickSlot(PacketMine.mc.player.currentScreenHandler.syncId, finalSlot, old, SlotActionType.SWAP, (PlayerEntity)PacketMine.mc.player);
@@ -964,10 +949,7 @@ private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFee
     }
 
     void doSwap(int slot, int inv) {
-        if (this.switchMode.is(SwitchMode.Silent)) {
-            // Silent 模式：只发包，不修改客户端视角
-            mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(slot));
-        } else if (!this.inventory.getValue()) {
+        if (!this.inventory.getValue()) {
             InventoryUtil.switchToSlot(slot);
         } else {
             InventoryUtil.inventorySwap(inv, PacketMine.mc.player.getInventory().selectedSlot);
@@ -975,10 +957,7 @@ private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFee
     }
 
     void doSwapBack(int slot, int inv) {
-        if (this.switchMode.is(SwitchMode.Silent)) {
-            // Silent 模式：发包切换回原槽位
-            mc.getNetworkHandler().sendPacket(new UpdateSelectedSlotC2SPacket(slot));
-        } else if (!this.inventory.getValue()) {
+        if (!this.inventory.getValue()) {
             InventoryUtil.switchToSlot(slot);
         } else {
             InventoryUtil.inventorySwap(inv, PacketMine.mc.player.getInventory().selectedSlot);
@@ -1156,11 +1135,4 @@ private final BooleanSetting antiFeetMine = this.add(new BooleanSetting("AntiFee
         None;
 
     }
-
-    public static enum SwitchMode {
-        Normal,
-        Silent,
-        Inventory;
-    }
 }
-

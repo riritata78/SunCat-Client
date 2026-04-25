@@ -168,4 +168,3 @@ extends Module {
         return MathUtil.interpolate(this.prevFakeZ, this.fakeZ, (double)mc.getRenderTickCounter().getTickDelta(true));
     }
 }
-

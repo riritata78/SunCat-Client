@@ -2,15 +2,12 @@ package dev.suncat.core.impl;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import dev.suncat.api.utils.player.InventoryUtil;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import dev.suncat.core.impl.CommandManager; 
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 
 public class KitManager {
     private static final File kitsDir = new File("suncat/kits");
@@ -18,6 +15,7 @@ public class KitManager {
 
     public static class Kit {
         public String name;
+        // 存储 ID，格式例如 "minecraft:obsidian"
         public String[] mainInventory = new String[36];
         public String[] armorInventory = new String[4];
         public String offHand = "";
@@ -65,8 +63,9 @@ public class KitManager {
 
             // Load main inventory
             for (int i = 0; i < 36; i++) {
-                if (mainInventory[i] != null && !mainInventory[i].isEmpty()) {
-                    var item = Registries.ITEM.getOrEmpty(net.minecraft.util.Identifier.of(mainInventory[i]));
+                String idStr = mainInventory[i];
+                if (idStr != null && !idStr.isEmpty()) {
+                    var item = Registries.ITEM.getOrEmpty(net.minecraft.util.Identifier.of(idStr));
                     if (item.isPresent()) {
                         ItemStack stack = new ItemStack(item.get(), mainInventoryCounts[i] > 0 ? mainInventoryCounts[i] : 1);
                         mc.player.getInventory().setStack(i, stack);
@@ -80,8 +79,9 @@ public class KitManager {
 
             // Load armor
             for (int i = 0; i < 4; i++) {
-                if (armorInventory[i] != null && !armorInventory[i].isEmpty()) {
-                    var item = Registries.ITEM.getOrEmpty(net.minecraft.util.Identifier.of(armorInventory[i]));
+                String idStr = armorInventory[i];
+                if (idStr != null && !idStr.isEmpty()) {
+                    var item = Registries.ITEM.getOrEmpty(net.minecraft.util.Identifier.of(idStr));
                     if (item.isPresent()) {
                         ItemStack stack = new ItemStack(item.get(), armorInventoryCounts[i] > 0 ? armorInventoryCounts[i] : 1);
                         mc.player.getInventory().setStack(36 + i, stack);
@@ -94,8 +94,9 @@ public class KitManager {
             }
 
             // Load offhand
-            if (offHand != null && !offHand.isEmpty()) {
-                var item = Registries.ITEM.getOrEmpty(net.minecraft.util.Identifier.of(offHand));
+            String offHandId = offHand;
+            if (offHandId != null && !offHandId.isEmpty()) {
+                var item = Registries.ITEM.getOrEmpty(net.minecraft.util.Identifier.of(offHandId));
                 if (item.isPresent()) {
                     ItemStack stack = new ItemStack(item.get(), offHandCount > 0 ? offHandCount : 1);
                     mc.player.getInventory().offHand.set(0, stack);
@@ -120,6 +121,7 @@ public class KitManager {
         for (int i = 0; i < 36; i++) {
             ItemStack stack = mc.player.getInventory().getStack(i);
             if (stack != null && !stack.isEmpty()) {
+                // 这里获取的 ID 包含命名空间，例如 "minecraft:obsidian"
                 var id = Registries.ITEM.getId(stack.getItem());
                 kit.mainInventory[i] = id.toString();
                 kit.mainInventoryCounts[i] = stack.getCount();

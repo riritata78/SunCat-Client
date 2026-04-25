@@ -29,7 +29,7 @@ import net.minecraft.client.MinecraftClient;
 
 public class suncat implements ModInitializer {
     public static final String NAME = "SunCat Client";
-    public static final String VERSION = "2.0.3";
+    public static final String VERSION = "2.0.4";
     public static final String CONFIG_DIR = "suncat";
     public static final EventBus EVENT_BUS = new EventBus();
     public static HoleManager HOLE;

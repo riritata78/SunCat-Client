@@ -73,15 +73,15 @@ extends Module {
             InteractTweaks.mc.itemUseCooldown = 0;
         }
         
-        // 切换逻辑（苹果/图腾）
+        // 切换逻辑（剑/镐/图腾 → 苹果）
         if (this.pickaxeSwitch.getValue()) {
-            boolean holdingSword = InteractTweaks.mc.player.getMainHandStack().getItem() instanceof SwordItem && this.allowSword.getValue();
-            boolean holdingPickaxe = InteractTweaks.mc.player.getMainHandStack().getItem() instanceof PickaxeItem && this.allowPickaxe.getValue();
-            boolean holdingTotemMain = InteractTweaks.mc.player.getMainHandStack().getItem() == Items.TOTEM_OF_UNDYING && this.allowTotem.getValue();
+            boolean holdingSword = InteractTweaks.mc.player.getMainHandStack().getItem() instanceof SwordItem;
+            boolean holdingPickaxe = InteractTweaks.mc.player.getMainHandStack().getItem() instanceof PickaxeItem;
+            boolean holdingTotemMain = InteractTweaks.mc.player.getMainHandStack().getItem() == Items.TOTEM_OF_UNDYING;
             boolean holdingGapple = InteractTweaks.mc.player.getMainHandStack().getItem() == Items.ENCHANTED_GOLDEN_APPLE;
             boolean holdingNormalApple = InteractTweaks.mc.player.getMainHandStack().getItem() == Items.GOLDEN_APPLE;
 
-            // 检查当前手持物品是否是允许切换的类型
+            // 检查当前手持物品是否是允许切换的类型（剑、镐、图腾或苹果）
             boolean holdingAllowedItem = holdingSword || holdingPickaxe || holdingTotemMain || holdingGapple || holdingNormalApple;
 
             if (!holdingAllowedItem) {
@@ -115,12 +115,12 @@ extends Module {
                 if (canSwitch) {
                     this.lastSlot = InteractTweaks.mc.player.getInventory().selectedSlot;
 
-                    // 切换到苹果（无论是剑、镐还是图腾，都切换到苹果）
+                    // 切换到苹果
                     InventoryUtil.switchToSlot(gappleSlot);
                     this.swapped = true;
                 }
             } else if (this.swapped) {
-                // 松开使用键后恢复
+                // 松开使用键后恢复原物品
                 InventoryUtil.switchToSlot(this.lastSlot);
                 this.swapped = false;
             }

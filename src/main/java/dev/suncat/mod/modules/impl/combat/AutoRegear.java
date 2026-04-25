@@ -86,14 +86,14 @@ extends Module {
     private final BooleanSetting forceMove = this.add(new BooleanSetting("ForceQuickMove", true, () -> this.take.getValue() && this.smart.isOpen()));
     private final SliderSetting takeSpeed = this.add(new SliderSetting("TakeSpeed", 1, 1, 10, 1, this.take::getValue));
     private final SliderSetting clickDelay = this.add(new SliderSetting("ClickDelay", 150, 50, 500, 5, this.take::getValue));
-    private final BooleanSetting instantTake = this.add(new BooleanSetting("InstantTake", false, this.take::getValue));  // 秒补功能
+    private final BooleanSetting instantTake = this.add(new BooleanSetting("InstantTake", false, this.take::getValue));
     private final BindSetting placeKey = this.add(new BindSetting("PlaceKey", -1));
     private final BooleanSetting onlyGround = this.add(new BooleanSetting("OnlyGround", true));
     private final BooleanSetting onlyHotbar = this.add(new BooleanSetting("OnlyHotbar", false));
 
     // Kit settings
     public String currentKitName = null;
-    private final BooleanSetting replaceItem = this.add(new BooleanSetting("ReplaceItem", false));  // 如果背包有物品则直接替换
+    private final BooleanSetting replaceItem = this.add(new BooleanSetting("ReplaceItem", false));
 
     // Take speed control
     private int takeProgress = 0;
@@ -106,11 +106,11 @@ extends Module {
     private BlockPos openPos;
     private boolean opend = false;
     private boolean on = false;
-    private boolean placeKeyPressed = false; // Track key state to prevent double-click
+    private boolean placeKeyPressed = false;
 
     private boolean hasShownNoShulkerMessage = false;
-    private boolean waitingForTransfer = false;  // Wait for item transfer to complete
-    private final Timer transferTimer = new Timer();  // Timer for transfer completion
+    private boolean waitingForTransfer = false;
+    private final Timer transferTimer = new Timer();
 
     public AutoRegear() {
         super("AutoRegear", Module.Category.Combat);
@@ -122,7 +122,6 @@ extends Module {
         if (this.inventory.getValue()) {
             int start = 0;
             int end = 36;
-            // 如果开启 OnlyHotbar，只搜索快捷栏 (0-8)
             if (this.onlyHotbar.getValue()) {
                 start = 0;
                 end = 9;
@@ -157,19 +156,16 @@ extends Module {
             return;
         }
 
-        // Check if player is in air
         if (this.onlyGround.getValue() && !AutoRegear.mc.player.isOnGround()) {
             this.sendMessage("\u00a74AutoRegear disabled: Player is not on ground");
             this.disable();
             return;
         }
 
-        // Auto-find existing shulker boxes on ground first
         if (this.open.getValue()) {
             for (BlockPos pos : BlockUtil.getSphere((float)this.range.getValue())) {
                 if (AutoRegear.mc.world.getBlockState(pos).getBlock() instanceof ShulkerBoxBlock &&
                     AutoRegear.mc.world.isAir(pos.up())) {
-                    // 检查 BlockEntity 有效性
                     if (isValidShulkerBox(pos)) {
                         this.openPos = pos;
                         this.sendMessage("\u00a72Found shulker box at: " + pos.toShortString());
@@ -179,9 +175,7 @@ extends Module {
             }
         }
 
-        // If no shulker found and place is enabled, place one
         if (this.openPos == null && this.place.getValue()) {
-            // Check if player has shulker box before trying to place
             if (this.findShulker() == -1) {
                 this.sendMessage("\u00a74No shulkerbox found in inventory. AutoRegear disabled.");
                 this.disable();
@@ -189,10 +183,8 @@ extends Module {
             }
             this.doPlace();
         } else if (this.openPos != null) {
-            // Open the found shulker
             this.timer.reset();
         } else {
-            // No shulker found and place is disabled
             this.sendMessage("\u00a74No shulker box found nearby. AutoRegear disabled.");
             this.disable();
         }
@@ -208,33 +200,25 @@ extends Module {
         BlockPos bestPos = null;
 
         for (BlockPos pos : BlockUtil.getSphere((float)this.range.getValue())) {
-            // Check if position is valid for placing shulker
             BlockPos belowPos = pos.offset(Direction.DOWN);
             BlockPos abovePos = pos.offset(Direction.UP);
 
-            // Skip if not air above (must have 2 blocks of air space for shulker box)
             if (!AutoRegear.mc.world.isAir(pos)) continue;
             if (!AutoRegear.mc.world.isAir(abovePos) && !BlockUtil.canReplace(abovePos)) continue;
 
-            // Skip if no solid block below to place on
             if (AutoRegear.mc.world.isAir(belowPos)) continue;
             if (!AutoRegear.mc.world.getBlockState(belowPos).isSolid()) continue;
 
-            // Check if block below is not a fluid (lava/water)
             if (!AutoRegear.mc.world.getFluidState(belowPos).isEmpty()) continue;
 
-            // Check distance
             double dist = AutoRegear.mc.player.squaredDistanceTo(pos.toCenterPos());
             if (dist < this.minRange.getValue() * this.minRange.getValue()) continue;
             if (dist > this.range.getValue() * this.range.getValue()) continue;
 
-            // Check if can place
             if (!BlockUtil.clientCanPlace(pos, false)) continue;
 
-            // Check if position is safe (not in lava/water)
             if (!AutoRegear.mc.world.getFluidState(pos).isEmpty()) continue;
 
-            // Check if player can see the placement position (raycast check)
             if (!canPlayerSeePosition(pos)) continue;
 
             if (bestPos == null || dist < getDistance) {
@@ -250,7 +234,6 @@ extends Module {
                 return;
             }
 
-            // Don't place if already a shulker there
             if (AutoRegear.mc.world.getBlockState(bestPos).getBlock() instanceof ShulkerBoxBlock) {
                 this.openPos = bestPos;
                 this.placePos = bestPos;
@@ -258,7 +241,6 @@ extends Module {
                 return;
             }
 
-            // Check if there's enough space above the placement position
             BlockPos abovePos = bestPos.offset(Direction.UP);
             if (!AutoRegear.mc.world.isAir(abovePos) && !BlockUtil.canReplace(abovePos)) {
                 this.sendMessage("\u00a74No enough space above placement position. AutoRegear disabled.");
@@ -297,7 +279,6 @@ extends Module {
 
         if (this.mine.getValue() && this.placePos != null && AutoRegear.mc.world != null) {
             if (AutoRegear.mc.world.getBlockState(this.placePos).getBlock() instanceof ShulkerBoxBlock) {
-                // 检查 BlockEntity 是否有效，防止崩端
                 if (isValidShulkerBox(this.placePos)) {
                     PacketMine.INSTANCE.mine(this.placePos);
                 }
@@ -311,16 +292,13 @@ extends Module {
             return;
         }
 
-        // Check if player is in air
         if (this.onlyGround.getValue() && !AutoRegear.mc.player.isOnGround()) {
             return;
         }
 
-        // Handle place key press with debounce
         boolean currentKeyState = this.placeKey.isPressed();
         
         if (currentKeyState && !this.placeKeyPressed && AutoRegear.mc.currentScreen == null) {
-            // Key just pressed
             this.placeKeyPressed = true;
             this.opend = false;
             this.openPos = null;
@@ -329,19 +307,16 @@ extends Module {
             this.doPlace();
             this.on = true;
         } else if (!currentKeyState) {
-            // Key released
             this.placeKeyPressed = false;
             this.on = false;
         }
         
         this.openList.removeIf(pos -> !(AutoRegear.mc.world.getBlockState(pos).getBlock() instanceof ShulkerBoxBlock));
         
-        // Auto-find shulker boxes on ground if not already found
         if (this.openPos == null && this.open.getValue()) {
             for (BlockPos pos : BlockUtil.getSphere((float)this.range.getValue())) {
                 if (AutoRegear.mc.world.getBlockState(pos).getBlock() instanceof ShulkerBoxBlock &&
                     AutoRegear.mc.world.isAir(pos.up())) {
-                    // 检查 BlockEntity 有效性
                     if (isValidShulkerBox(pos)) {
                         this.openPos = pos;
                         break;
@@ -351,14 +326,12 @@ extends Module {
         }
         
         if (!(AutoRegear.mc.currentScreen instanceof ShulkerBoxScreen)) {
-            // If waiting for transfer to complete, don't mine yet
             if (this.waitingForTransfer) {
                 if (this.transferTimer.passed(1000)) {
-                    // Timeout, force stop waiting
                     this.waitingForTransfer = false;
                     this.takeProgress = 0;
                 }
-                return;  // Keep screen open while waiting
+                return;
             }
 
             if (this.opend) {
@@ -368,7 +341,6 @@ extends Module {
                 }
                 if (this.mine.getValue() && this.openPos != null) {
                     if (AutoRegear.mc.world.getBlockState(this.openPos).getBlock() instanceof ShulkerBoxBlock) {
-                        // 检查 BlockEntity 是否有效，防止崩端
                         if (isValidShulkerBox(this.openPos)) {
                             PacketMine.INSTANCE.mine(this.openPos);
                         }
@@ -379,22 +351,18 @@ extends Module {
                 return;
             }
             if (this.open.getValue()) {
-                // 检查容器是否已打开，防止重复打开导致崩端
                 if (AutoRegear.mc.player.currentScreenHandler instanceof ShulkerBoxScreenHandler) {
                     return;
                 }
                 
                 if (this.placePos != null && (double)MathHelper.sqrt((float)((float)AutoRegear.mc.player.squaredDistanceTo(this.placePos.toCenterPos()))) <= this.range.getValue() && AutoRegear.mc.world.isAir(this.placePos.up()) && (!this.timer.passed(500L) || AutoRegear.mc.world.getBlockState(this.placePos).getBlock() instanceof ShulkerBoxBlock)) {
                     if (AutoRegear.mc.world.getBlockState(this.placePos).getBlock() instanceof ShulkerBoxBlock) {
-                        // 打开前检查 BlockEntity 有效性
                         if (isValidShulkerBox(this.placePos)) {
                             this.openPos = this.placePos;
                             BlockUtil.clickBlock(this.placePos, BlockUtil.getClickSide(this.placePos), this.rotate.getValue());
                         }
                     }
                 } else if (this.openPos != null && AutoRegear.mc.world.getBlockState(this.openPos).getBlock() instanceof ShulkerBoxBlock) {
-                    // Found shulker on ground, open it
-                    // 打开前检查 BlockEntity 有效性
                     if (isValidShulkerBox(this.openPos)) {
                         BlockUtil.clickBlock(this.openPos, BlockUtil.getClickSide(this.openPos), this.rotate.getValue());
                     }
@@ -402,7 +370,6 @@ extends Module {
                     boolean found = false;
                     for (BlockPos pos2 : BlockUtil.getSphere((float)this.range.getValue())) {
                         if (this.openList.contains(pos2) || !AutoRegear.mc.world.isAir(pos2.up()) && !BlockUtil.canReplace(pos2.up()) || !(AutoRegear.mc.world.getBlockState(pos2).getBlock() instanceof ShulkerBoxBlock)) continue;
-                        // 打开前检查 BlockEntity 有效性
                         if (isValidShulkerBox(pos2)) {
                             this.openPos = pos2;
                             BlockUtil.clickBlock(pos2, BlockUtil.getClickSide(pos2), this.rotate.getValue());
@@ -411,7 +378,6 @@ extends Module {
                         }
                     }
                     if (!found && this.autoDisable.getValue()) {
-                        // No shulker found, try to place one
                         this.doPlace();
                     }
                 }
@@ -431,12 +397,10 @@ extends Module {
             return;
         }
 
-        // Check click delay (skip if instantTake is enabled)
         if (!this.instantTake.getValue() && !this.clickTimer.passed(this.clickDelay.getValueInt())) {
             return;
         }
 
-        // 检查容器是否仍然有效，防止崩端
         ScreenHandler screenHandler = AutoRegear.mc.player.currentScreenHandler;
         if (!(screenHandler instanceof ShulkerBoxScreenHandler)) {
             return;
@@ -450,75 +414,55 @@ extends Module {
         if (screenHandler instanceof ShulkerBoxScreenHandler) {
             ShulkerBoxScreenHandler shulker = (ShulkerBoxScreenHandler)screenHandler;
 
-            // Kit mode - take items based on saved kit in order
-            // Use currentKitName (set by kit load command)
             String kitName = this.currentKitName;
             KitManager.Kit kit = kitName != null ? KitManager.getKit(kitName) : null;
 
             if (kit != null) {
                 this.takenThisCycle = 0;
-                // 如果开启秒补，每 tick 拿取 36 个物品（全部）
-                // 否则使用 TakeSpeed 设置
                 int maxTakes = this.instantTake.getValue() ? 36 : this.takeSpeed.getValueInt();
 
-                // Calculate needed items and quantities for instant take mode
-                java.util.Map<String, Integer> neededItems = new java.util.HashMap<>();
-                if (this.instantTake.getValue()) {
-                    for (int i = 0; i < 36; i++) {
-                        if (kit.mainInventory[i] != null && !kit.mainInventory[i].isEmpty()) {
-                            String itemId = kit.mainInventory[i];
-                            int needCount = kit.mainInventoryCounts[i];
-                            int currentCount = getPlayerItemCount(itemId);
-                            int needed = Math.max(0, needCount - currentCount);
-                            if (needed > 0) {
-                                neededItems.merge(itemId, needed, Integer::sum);
-                            }
-                        }
-                    }
-                }
-
-                // 简化处理：遍历Kit中的所有物品，拿取不足的数量
                 boolean hasTaken = false;
-                for (int i = 0; i < 36 && this.takenThisCycle < maxTakes; i++) {
+                
+                for (int i = 0; i < 36; i++) {
                     if (kit.mainInventory[i] == null || kit.mainInventory[i].isEmpty()) {
                         continue;
                     }
 
-                    String itemId = kit.mainInventory[i];
+                    String kitItemId = kit.mainInventory[i];
                     int needCount = kit.mainInventoryCounts[i];
-                    int currentCount = getPlayerItemCount(itemId);
+                    
+                    int currentCount = getPlayerItemCount(kitItemId);
 
-                    // 检查是否还需要这个物品
                     if (currentCount >= needCount) {
                         continue;
                     }
 
-                    // 在容器中查找该物品并拿取
-                    for (Slot slot : shulker.slots) {
-                        if (slot.id >= 27 || slot.getStack().isEmpty()) continue; // 只检查容器槽位
+                    int needed = needCount - currentCount;
 
-                        String shulkerItemId = Registries.ITEM.getId(slot.getStack().getItem()).toString();
-                        if (shulkerItemId.equals(itemId)) {
-                            // 拿取物品
+                    for (Slot slot : shulker.slots) {
+                        if (slot.id >= 27 || slot.getStack().isEmpty()) continue;
+
+                        ItemStack stack = slot.getStack();
+                        String shulkerItemId = Registries.ITEM.getId(stack.getItem()).toString();
+
+                        if (shulkerItemId.equals(kitItemId)) {
                             AutoRegear.mc.interactionManager.clickSlot(shulker.syncId, slot.id, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
+                            
                             take = true;
                             hasTaken = true;
                             this.takenThisCycle++;
+                            
+                            currentCount += stack.getCount();
+                            needed -= stack.getCount();
 
-                            // 秒补模式下不重置 clickTimer，普通模式需要重置
                             if (!this.instantTake.getValue()) {
                                 this.clickTimer.reset();
                             }
                             
-                            // 更新当前数量
-                            currentCount = getPlayerItemCount(itemId);
-                            
-                            // 如果已满足所需数量，跳出内层循环
-                            if (currentCount >= needCount) {
+                            if (needed <= 0) {
                                 break;
                             }
                             
-                            // 如果达到本次最大拿取数量，跳出外层循环
                             if (this.takenThisCycle >= maxTakes) {
                                 break;
                             }
@@ -530,11 +474,9 @@ extends Module {
                     }
                 }
                 
-                // 如果没有可拿取的物品，且启用了自动禁用，则禁用模块
                 if (!hasTaken && this.autoDisable.getValue()) {
                     if (this.mine.getValue() && this.openPos != null) {
                         if (AutoRegear.mc.world.getBlockState(this.openPos).getBlock() instanceof ShulkerBoxBlock) {
-                            // 检查 BlockEntity 是否有效，防止崩端
                             if (isValidShulkerBox(this.openPos)) {
                                 PacketMine.INSTANCE.mine(this.openPos);
                             }
@@ -543,7 +485,6 @@ extends Module {
                     this.disable();
                 }
             } else {
-                // No kit loaded - take everything like before
                 for (Slot slot : shulker.slots) {
                     if (slot.id < 27 && !slot.getStack().isEmpty()) {
                         AutoRegear.mc.interactionManager.clickSlot(shulker.syncId, slot.id, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
@@ -685,7 +626,6 @@ extends Module {
             return;
         }
         
-        // 检查容器是否打开，防止崩端
         if (AutoRegear.mc.player.currentScreenHandler instanceof ShulkerBoxScreenHandler) {
             return;
         }
@@ -694,7 +634,6 @@ extends Module {
         BlockUtil.clickBlock(pos.offset(Direction.DOWN), Direction.UP, this.rotate.getValue());
     }
 
-    // Find item in player inventory and return slot number
     private int findItemInInventory(String itemId) {
         for (int i = 0; i < 36; i++) {
             ItemStack stack = AutoRegear.mc.player.getInventory().getStack(i);
@@ -707,7 +646,11 @@ extends Module {
         return -1;
     }
 
-    // Get total count of specific item in player inventory
+    /**
+     * 获取玩家背包中指定物品的总数量
+     * @param itemId 物品 ID，必须包含命名空间（如 minecraft:obsidian）
+     * @return 物品总数
+     */
     private int getPlayerItemCount(String itemId) {
         int count = 0;
         // Main inventory (0-35)
@@ -728,15 +671,23 @@ extends Module {
                 count += offhand.getCount();
             }
         }
+        // Armor (36-39)
+        for (int i = 0; i < 4; i++) {
+            ItemStack stack = AutoRegear.mc.player.getInventory().getStack(36 + i);
+            if (!stack.isEmpty()) {
+                String stackId = Registries.ITEM.getId(stack.getItem()).toString();
+                if (stackId.equals(itemId)) {
+                    count += stack.getCount();
+                }
+            }
+        }
         return count;
     }
 
-    // Swap two slots in player inventory using PICKUP actions
     private void swapInventorySlots(int slot1, int slot2) {
         ScreenHandler screenHandler = AutoRegear.mc.player.currentScreenHandler;
         if (screenHandler == null) return;
         
-        // 检查容器是否仍然有效，防止崩端
         if (!(screenHandler instanceof ShulkerBoxScreenHandler)) {
             return;
         }
@@ -745,17 +696,11 @@ extends Module {
             return;
         }
 
-        // Pick up item from slot1
         AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot1, 0, SlotActionType.PICKUP, (PlayerEntity)AutoRegear.mc.player);
-        // Pick up item from slot2 (places slot1 item there, picks up slot2 item)
         AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot2, 0, SlotActionType.PICKUP, (PlayerEntity)AutoRegear.mc.player);
-        // Place the item (originally from slot2) into slot1
         AutoRegear.mc.interactionManager.clickSlot(screenHandler.syncId, slot1, 0, SlotActionType.PICKUP, (PlayerEntity)AutoRegear.mc.player);
     }
 
-    /**
-     * Check if player can see the placement position (raycast check)
-     */
     private boolean canPlayerSeePosition(BlockPos pos) {
         if (AutoRegear.mc.player == null || AutoRegear.mc.world == null) {
             return false;
@@ -763,13 +708,11 @@ extends Module {
         Vec3d eyesPos = AutoRegear.mc.player.getEyePos();
         Vec3d targetPos = new Vec3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
         
-        // Simple distance-based check - if the position is too far or obstructed, skip it
         double dist = eyesPos.distanceTo(targetPos);
         if (dist > this.range.getValue()) {
             return false;
         }
         
-        // Check if there's a clear line of sight
         Vec3d direction = targetPos.subtract(eyesPos).normalize();
         int steps = (int)(dist * 2);
         for (int i = 0; i < steps; i++) {
@@ -784,36 +727,26 @@ extends Module {
         return true;
     }
 
-    /**
-     * 检查潜影盒 BlockEntity 是否有效，防止 Sodium 崩溃
-     * @param pos 潜影盒位置
-     * @return 如果 BlockEntity 有效则返回 true
-     */
     private boolean isValidShulkerBox(BlockPos pos) {
         if (pos == null || AutoRegear.mc.world == null) {
             return false;
         }
         try {
-            // 检查方块是否为潜影盒
             if (!(AutoRegear.mc.world.getBlockState(pos).getBlock() instanceof ShulkerBoxBlock)) {
                 return false;
             }
-            // 检查 BlockEntity 是否存在且有效
             var blockEntity = AutoRegear.mc.world.getBlockEntity(pos);
             if (blockEntity == null) {
                 return false;
             }
-            // 检查是否为 ShulkerBoxBlockEntity 类型
             if (!(blockEntity instanceof ShulkerBoxBlockEntity)) {
                 return false;
             }
-            // 检查 BlockEntity 是否被标记为移除
             if (blockEntity.isRemoved()) {
                 return false;
             }
             return true;
         } catch (Exception e) {
-            // 捕获任何可能的异常，防止崩端
             return false;
         }
     }

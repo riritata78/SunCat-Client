@@ -146,6 +146,7 @@ public class ModuleManager
         this.addModule(new Tracers());
         this.addModule(new MovementSync());
         this.addModule(new EFly());
+        this.addModule(new ElytraFly());
         this.addModule(new ChestSwap());
         this.addModule(new FlyOnFirstTime());
         this.addModule(new FakeFly());

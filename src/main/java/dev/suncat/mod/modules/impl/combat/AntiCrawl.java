@@ -45,12 +45,12 @@ extends Module {
                     BlockPosX web;
                     BlockPosX pos = new BlockPosX(AntiCrawl.mc.player.getX() + offset, AntiCrawl.mc.player.getY() + 1.2, AntiCrawl.mc.player.getZ() + offset2);
                     if (this.canBreak(pos)) {
-                        PacketMine.INSTANCE.mine(pos);
+                        PacketMine.INSTANCE.mine(pos, true);
                         this.work = true;
                         return;
                     }
                     if (!this.web.getValue() || AntiCrawl.mc.world.getBlockState((BlockPos)(web = new BlockPosX(AntiCrawl.mc.player.getX() + offset, AntiCrawl.mc.player.getY(), AntiCrawl.mc.player.getZ() + offset2))).getBlock() != Blocks.COBWEB || !this.canBreak(web)) continue;
-                    PacketMine.INSTANCE.mine(web);
+                    PacketMine.INSTANCE.mine(web, true);
                     this.work = true;
                     return;
                 }

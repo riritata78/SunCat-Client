@@ -96,7 +96,7 @@ public class Surround extends Module
         this.timingMode = this.add(new EnumSetting<TimingMode>("TimingMode", TimingMode.VANILLA, () -> this.page.is(Page.General)));
         this.prePlaceExplosion = this.add(new BooleanSetting("PrePlace-Explosion", false, () -> this.page.is(Page.General) && this.timingMode.getValue() == TimingMode.SEQUENTIAL));
         this.prePlaceTick = this.add(new BooleanSetting("PrePlace-Tick", false, () -> this.page.is(Page.General) && this.timingMode.getValue() == TimingMode.SEQUENTIAL));
-        this.blocksPerTick = this.add(new SliderSetting("BlocksPerTick", 2, 1, 8, () -> this.page.is(Page.General)));
+        this.blocksPerTick = this.add(new SliderSetting("BlocksPerTick", 2, 1, 20, () -> this.page.is(Page.General)));
         this.shiftDelay = this.add(new SliderSetting("ShiftDelay", 0.0, 0.0, 5.0, 0.10000000149011612, () -> this.page.is(Page.General)));
         this.inAir = this.add(new BooleanSetting("InAir", true, () -> this.page.is(Page.Check)));
         this.detectMining = this.add(new BooleanSetting("DetectMining", false, () -> this.page.is(Page.Check)));
@@ -365,7 +365,7 @@ public class Surround extends Module
             return false;
         }
         final Long placedTime = this.placedPackets.get(pos);
-        int maxBlocks = this.initialBurst ? 8 : (int)this.blocksPerTick.getValue();
+        int maxBlocks = this.initialBurst ? 20 : (int)this.blocksPerTick.getValue();
         return (placedTime == null || this.shiftDelay.getValueFloat() <= 0.0f || System.currentTimeMillis() - placedTime >= (long)(this.shiftDelay.getValueFloat() * 50.0f)) && this.blocksPlacedThisTick < maxBlocks;
     }
     

@@ -111,7 +111,7 @@ public class SelfTrap extends Module
         this.timingMode = this.add(new EnumSetting<TimingMode>("TimingMode", TimingMode.VANILLA, () -> this.page.is(Page.General)));
         this.prePlaceExplosion = this.add(new BooleanSetting("PrePlace-Explosion", false, () -> this.page.is(Page.General) && this.timingMode.getValue() == TimingMode.SEQUENTIAL));
         this.prePlaceTick = this.add(new BooleanSetting("PrePlace-Tick", false, () -> this.page.is(Page.General) && this.timingMode.getValue() == TimingMode.SEQUENTIAL));
-        this.blocksPerTick = this.add(new SliderSetting("BlocksPerTick", 2, 1, 8, () -> this.page.is(Page.General)));
+        this.blocksPerTick = this.add(new SliderSetting("BlocksPerTick", 2, 1, 20, () -> this.page.is(Page.General)));
         this.shiftDelay = this.add(new SliderSetting("ShiftDelay", 0.0, 0.0, 5.0, 0.1, () -> this.page.is(Page.General)));
         this.autoDisable = this.add(new BooleanSetting("AutoDisable", true, () -> this.page.is(Page.General)));
         this.headKey = this.add(new BindSetting("HeadKey", -1, () -> this.page.is(Page.General)));
@@ -393,7 +393,7 @@ public class SelfTrap extends Module
         // 检查是否使用ElytraFly飞行
         boolean isElytraFlying = ElytraFly.INSTANCE != null && ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.isFallFlying();
         // 检查是否使用EFly飞行
-        boolean isEFlyFlying = EFly.INSTANCE != null && EFly.INSTANCE.isOn() && EFly.INSTANCE.isFallFlying();
+        boolean isEFlyFlying = EFly.INSTANCE != null && EFly.INSTANCE.isOn() && mc.player.isFallFlying();
         
         return (this.whenElytra.getValue() || (!SelfTrap.mc.player.isFallFlying() && !isElytraFlying && !isEFlyFlying)) && this.yawStep.getValue() && !Velocity.INSTANCE.noRotation();
     }
@@ -539,7 +539,7 @@ public class SelfTrap extends Module
             return false;
         }
         this.placedPackets.remove(pos);
-        int maxBlocks = this.initialBurst ? 8 : (int)this.blocksPerTick.getValue();
+        int maxBlocks = this.initialBurst ? 20 : (int)this.blocksPerTick.getValue();
         return this.blocksPlacedThisTick < maxBlocks;
     }
     

@@ -446,6 +446,10 @@ extends Manager {
         return this.settings.get(setting);
     }
 
+    public void setString(String key, String value) {
+        this.settings.put(key, value);
+    }
+
     public boolean isInteger(String str) {
         Pattern pattern = Pattern.compile("^[-+]?[\\d]*$");
         return pattern.matcher(str).matches();
@@ -456,4 +460,3 @@ extends Manager {
         return str.matches(pattern);
     }
 }
-

@@ -72,12 +72,13 @@ extends Button {
                 newItems.add(new EnumButton((EnumSetting<?>)s));
             }
             if (setting instanceof ModuleListSetting) {
-            s = (ModuleListSetting)setting;
-            newItems.add(new ModuleListButton((ModuleListSetting)s));
-        }
-        if (!(setting instanceof ColorSetting)) continue;
-            s = (ColorSetting)setting;
-            newItems.add(new PickerButton((ColorSetting)s));
+                s = (ModuleListSetting)setting;
+                newItems.add(new ModuleListButton((ModuleListSetting)s));
+            }
+            if (setting instanceof ColorSetting) {
+                s = (ColorSetting)setting;
+                newItems.add(new PickerButton((ColorSetting)s));
+            }
         }
         this.items = newItems;
     }

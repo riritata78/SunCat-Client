@@ -96,6 +96,7 @@
     "mixins.MixinShulkerBoxBlock",
     "mixins.MixinSoundSystem",
     "mixins.MixinToastManager",
+    "mixins.MixinTitleScreen",
     "mixins.MixinTotemParticle",
     "mixins.MixinWorld",
     "mixins.MixinWorldRenderer",
