@@ -26,6 +26,7 @@ local.properties
 # Compiled jars
 *.jar
 !gradle/wrapper/*.jar
+!lib/*.jar
 
 # Minecraft merge files
 **/minecraft-merged-*
