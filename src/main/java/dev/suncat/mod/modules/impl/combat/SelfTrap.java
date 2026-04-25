@@ -505,6 +505,10 @@ public class SelfTrap extends Module
     }
     
     private void doHeadCross(final BlockPos pos) {
+        // 如果玩家正在趴下，不围头
+        if (SelfTrap.mc.player.isCrawling()) {
+            return;
+        }
         final BlockPos headPos = pos.up(2);
         if (this.headExtend.getValue()) {
             for (final Direction dir : Direction.values()) {

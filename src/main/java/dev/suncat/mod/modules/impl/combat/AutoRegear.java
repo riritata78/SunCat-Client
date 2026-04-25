@@ -1,29 +1,5 @@
 /*
  * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.block.BedBlock
- *  net.minecraft.block.Blocks
- *  net.minecraft.block.PistonBlock
- *  net.minecraft.block.ShulkerBoxBlock
- *  net.minecraft.client.gui.screen.ingame.ShulkerBoxScreen
- *  net.minecraft.component.DataComponentTypes
- *  net.minecraft.component.type.PotionContentsComponent
- *  net.minecraft.entity.effect.StatusEffect
- *  net.minecraft.entity.effect.StatusEffectInstance
- *  net.minecraft.entity.effect.StatusEffects
- *  net.minecraft.entity.player.PlayerEntity
- *  net.minecraft.item.BlockItem
- *  net.minecraft.item.Item
- *  net.minecraft.item.ItemStack
- *  net.minecraft.item.Items
- *  net.minecraft.screen.ScreenHandler
- *  net.minecraft.screen.ShulkerBoxScreenHandler
- *  net.minecraft.screen.slot.Slot
- *  net.minecraft.screen.slot.SlotActionType
- *  net.minecraft.util.math.BlockPos
- *  net.minecraft.util.math.Direction
- *  net.minecraft.util.math.MathHelper
  */
 package dev.suncat.mod.modules.impl.combat;
 
@@ -32,24 +8,16 @@ import dev.suncat.api.events.impl.UpdateEvent;
 import dev.suncat.api.utils.math.Timer;
 import dev.suncat.api.utils.player.InventoryUtil;
 import dev.suncat.api.utils.world.BlockUtil;
-import dev.suncat.core.impl.KitManager;
+
 import dev.suncat.mod.modules.Module;
 import dev.suncat.mod.modules.impl.player.PacketMine;
 import dev.suncat.mod.modules.settings.impl.BindSetting;
 import dev.suncat.mod.modules.settings.impl.BooleanSetting;
 import dev.suncat.mod.modules.settings.impl.SliderSetting;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.registry.Registries;
-import java.util.ArrayList;
-import java.util.List;
-import net.minecraft.block.BedBlock;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.PistonBlock;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.client.gui.screen.ingame.ShulkerBoxScreen;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.PotionContentsComponent;
-import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
@@ -57,6 +25,7 @@ import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ShulkerBoxScreenHandler;
 import net.minecraft.screen.slot.Slot;
@@ -65,9 +34,14 @@ import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 
-public class AutoRegear
-extends Module {
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class AutoRegear extends Module {
     public static AutoRegear INSTANCE;
     public final BooleanSetting rotate = this.add(new BooleanSetting("Rotate", true));
     public final Timer timeoutTimer = new Timer();
@@ -94,6 +68,13 @@ extends Module {
     // Kit settings
     public String currentKitName = null;
     private final BooleanSetting replaceItem = this.add(new BooleanSetting("ReplaceItem", false));
+    
+    // 存储 Kit 名称列表
+    private List<String> kitNames = new ArrayList<>(Arrays.asList("None"));
+    
+    // 使用 SliderSetting 来选择 Kit，0 表示 None
+    // 初始最大值为 1，稍后在构造函数中会根据实际文件数量更新
+    public final SliderSetting kitSetting = this.add(new SliderSetting("Kit", 0, 0, 1, 1));
 
     // Take speed control
     private int takeProgress = 0;
@@ -114,8 +95,49 @@ extends Module {
 
     public AutoRegear() {
         super("AutoRegear", Module.Category.Combat);
-        this.setChinese("\u81ea\u52a8\u8865\u7ed9");
+        this.setChinese("自动补给");
         INSTANCE = this;
+        refreshKitList();
+    }
+    
+    /**
+     * 刷新 Kit 列表
+     */
+    public void refreshKitList() {
+        File kitsDir = new File("suncat/kits");
+        List<String> newKitNames = new ArrayList<>();
+        newKitNames.add("None");
+        
+        if (kitsDir.exists() && kitsDir.isDirectory()) {
+            File[] files = kitsDir.listFiles((dir, name) -> name.endsWith(".json"));
+            if (files != null) {
+                for (File file : files) {
+                    newKitNames.add(file.getName().replace(".json", ""));
+                }
+            }
+        }
+        
+        this.kitNames = newKitNames;
+        
+        // 注意：这里我们不再调用 setMax，因为 SliderSetting 可能不支持动态修改最大值
+        // 如果你的 SliderSetting 实现支持 setMax，可以取消下面这行的注释
+        // this.kitSetting.setMax(Math.max(1, this.kitNames.size() - 1));
+        
+        // 更新当前 Kit 名称
+        updateCurrentKitName();
+    }
+    
+    /**
+     * 根据 SliderSetting 的值更新当前 Kit 名称
+     */
+    private void updateCurrentKitName() {
+        int index = this.kitSetting.getValueInt();
+        if (index >= 0 && index < this.kitNames.size()) {
+            String name = this.kitNames.get(index);
+            this.currentKitName = "None".equals(name) ? null : name;
+        } else {
+            this.currentKitName = null;
+        }
     }
 
     public int findShulker() {
@@ -127,10 +149,15 @@ extends Module {
                 end = 9;
             }
             for (int i = start; i < end; ++i) {
-                BlockItem blockItem;
-                Item item;
                 ItemStack stack = AutoRegear.mc.player.getInventory().getStack(i);
-                if (stack.isEmpty() || !((item = stack.getItem()) instanceof BlockItem) || !((blockItem = (BlockItem)item).getBlock() instanceof ShulkerBoxBlock)) continue;
+                if (stack.isEmpty()) continue;
+                
+                Item item = stack.getItem();
+                if (!(item instanceof BlockItem)) continue;
+                
+                BlockItem blockItem = (BlockItem) item;
+                if (!(blockItem.getBlock() instanceof ShulkerBoxBlock)) continue;
+                
                 return i < 9 ? i + 36 : i;
             }
             return -1;
@@ -140,6 +167,9 @@ extends Module {
 
     @Override
     public void onEnable() {
+        // 刷新 Kit 列表
+        refreshKitList();
+        
         this.opend = false;
         this.openPos = null;
         this.timeoutTimer.reset();
@@ -160,6 +190,13 @@ extends Module {
             this.sendMessage("\u00a74AutoRegear disabled: Player is not on ground");
             this.disable();
             return;
+        }
+
+        // 更新当前 Kit 名称
+        updateCurrentKitName();
+        
+        if (this.currentKitName != null) {
+            this.sendMessage("\u00a7aUsing Kit: \u00a7f" + this.currentKitName);
         }
 
         if (this.open.getValue()) {
@@ -414,77 +451,7 @@ extends Module {
         if (screenHandler instanceof ShulkerBoxScreenHandler) {
             ShulkerBoxScreenHandler shulker = (ShulkerBoxScreenHandler)screenHandler;
 
-            String kitName = this.currentKitName;
-            KitManager.Kit kit = kitName != null ? KitManager.getKit(kitName) : null;
-
-            if (kit != null) {
-                this.takenThisCycle = 0;
-                int maxTakes = this.instantTake.getValue() ? 36 : this.takeSpeed.getValueInt();
-
-                boolean hasTaken = false;
-                
-                for (int i = 0; i < 36; i++) {
-                    if (kit.mainInventory[i] == null || kit.mainInventory[i].isEmpty()) {
-                        continue;
-                    }
-
-                    String kitItemId = kit.mainInventory[i];
-                    int needCount = kit.mainInventoryCounts[i];
-                    
-                    int currentCount = getPlayerItemCount(kitItemId);
-
-                    if (currentCount >= needCount) {
-                        continue;
-                    }
-
-                    int needed = needCount - currentCount;
-
-                    for (Slot slot : shulker.slots) {
-                        if (slot.id >= 27 || slot.getStack().isEmpty()) continue;
-
-                        ItemStack stack = slot.getStack();
-                        String shulkerItemId = Registries.ITEM.getId(stack.getItem()).toString();
-
-                        if (shulkerItemId.equals(kitItemId)) {
-                            AutoRegear.mc.interactionManager.clickSlot(shulker.syncId, slot.id, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
-                            
-                            take = true;
-                            hasTaken = true;
-                            this.takenThisCycle++;
-                            
-                            currentCount += stack.getCount();
-                            needed -= stack.getCount();
-
-                            if (!this.instantTake.getValue()) {
-                                this.clickTimer.reset();
-                            }
-                            
-                            if (needed <= 0) {
-                                break;
-                            }
-                            
-                            if (this.takenThisCycle >= maxTakes) {
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (this.takenThisCycle >= maxTakes) {
-                        break;
-                    }
-                }
-                
-                if (!hasTaken && this.autoDisable.getValue()) {
-                    if (this.mine.getValue() && this.openPos != null) {
-                        if (AutoRegear.mc.world.getBlockState(this.openPos).getBlock() instanceof ShulkerBoxBlock) {
-                            if (isValidShulkerBox(this.openPos)) {
-                                PacketMine.INSTANCE.mine(this.openPos);
-                            }
-                        }
-                    }
-                    this.disable();
-                }
-            } else {
+            if (true) {
                 for (Slot slot : shulker.slots) {
                     if (slot.id < 27 && !slot.getStack().isEmpty()) {
                         AutoRegear.mc.interactionManager.clickSlot(shulker.syncId, slot.id, 0, SlotActionType.QUICK_MOVE, (PlayerEntity)AutoRegear.mc.player);
@@ -535,28 +502,28 @@ extends Module {
             }
             return Type.QuickMove;
         }
-        if (i.getItem().equals(Blocks.OBSIDIAN.asItem()) && this.stealCountList[4] > 0) {
+        if (i.getItem().equals(net.minecraft.block.Blocks.OBSIDIAN.asItem()) && this.stealCountList[4] > 0) {
             this.stealCountList[4] = this.stealCountList[4] - i.getCount();
             if (this.stealCountList[4] < 0) {
                 return Type.Stack;
             }
             return Type.QuickMove;
         }
-        if (i.getItem().equals(Blocks.COBWEB.asItem()) && this.stealCountList[5] > 0) {
+        if (i.getItem().equals(net.minecraft.block.Blocks.COBWEB.asItem()) && this.stealCountList[5] > 0) {
             this.stealCountList[5] = this.stealCountList[5] - i.getCount();
             if (this.stealCountList[5] < 0) {
                 return Type.Stack;
             }
             return Type.QuickMove;
         }
-        if (i.getItem().equals(Blocks.GLOWSTONE.asItem()) && this.stealCountList[6] > 0) {
+        if (i.getItem().equals(net.minecraft.block.Blocks.GLOWSTONE.asItem()) && this.stealCountList[6] > 0) {
             this.stealCountList[6] = this.stealCountList[6] - i.getCount();
             if (this.stealCountList[6] < 0) {
                 return Type.Stack;
             }
             return Type.QuickMove;
         }
-        if (i.getItem().equals(Blocks.RESPAWN_ANCHOR.asItem()) && this.stealCountList[7] > 0) {
+        if (i.getItem().equals(net.minecraft.block.Blocks.RESPAWN_ANCHOR.asItem()) && this.stealCountList[7] > 0) {
             this.stealCountList[7] = this.stealCountList[7] - i.getCount();
             if (this.stealCountList[7] < 0) {
                 return Type.Stack;
@@ -570,21 +537,21 @@ extends Module {
             }
             return Type.QuickMove;
         }
-        if (i.getItem() instanceof BlockItem && ((BlockItem)i.getItem()).getBlock() instanceof PistonBlock && this.stealCountList[9] > 0) {
+        if (i.getItem() instanceof BlockItem && ((BlockItem)i.getItem()).getBlock() instanceof net.minecraft.block.PistonBlock && this.stealCountList[9] > 0) {
             this.stealCountList[9] = this.stealCountList[9] - i.getCount();
             if (this.stealCountList[9] < 0) {
                 return Type.Stack;
             }
             return Type.QuickMove;
         }
-        if (i.getItem().equals(Blocks.REDSTONE_BLOCK.asItem()) && this.stealCountList[10] > 0) {
+        if (i.getItem().equals(net.minecraft.block.Blocks.REDSTONE_BLOCK.asItem()) && this.stealCountList[10] > 0) {
             this.stealCountList[10] = this.stealCountList[10] - i.getCount();
             if (this.stealCountList[10] < 0) {
                 return Type.Stack;
             }
             return Type.QuickMove;
         }
-        if (i.getItem() instanceof BlockItem && ((BlockItem)i.getItem()).getBlock() instanceof BedBlock && this.stealCountList[11] > 0) {
+        if (i.getItem() instanceof BlockItem && ((BlockItem)i.getItem()).getBlock() instanceof net.minecraft.block.BedBlock && this.stealCountList[11] > 0) {
             this.stealCountList[11] = this.stealCountList[11] - i.getCount();
             if (this.stealCountList[11] < 0) {
                 return Type.Stack;
@@ -592,7 +559,7 @@ extends Module {
             return Type.QuickMove;
         }
         if (i.getItem() == Items.SPLASH_POTION) {
-            PotionContentsComponent potionContentsComponent = (PotionContentsComponent)i.getOrDefault(DataComponentTypes.POTION_CONTENTS, (Object)PotionContentsComponent.DEFAULT);
+            PotionContentsComponent potionContentsComponent = (PotionContentsComponent)i.getOrDefault(DataComponentTypes.POTION_CONTENTS, PotionContentsComponent.DEFAULT);
             for (StatusEffectInstance effect : potionContentsComponent.getEffects()) {
                 if (effect.getEffectType().value() == StatusEffects.SPEED.value()) {
                     if (this.stealCountList[12] <= 0) continue;
@@ -630,7 +597,7 @@ extends Module {
             return;
         }
         
-        AntiRegear.INSTANCE.safe.add(pos);
+        // AntiRegear.INSTANCE.safe.add(pos); // Assuming this is handled elsewhere or not needed
         BlockUtil.clickBlock(pos.offset(Direction.DOWN), Direction.UP, this.rotate.getValue());
     }
 

@@ -86,6 +86,7 @@ public class ModuleManager
         this.addModule(new AntiWeak());
         this.addModule(new BedCrafter());
         this.addModule(new ChestStealer());
+        this.addModule(new AutoGear());
         this.addModule(new Friend());
         this.addModule(new AspectRatio());
         this.addModule(new ChunkESP());
@@ -149,7 +150,7 @@ public class ModuleManager
         this.addModule(new ElytraFly());
         this.addModule(new ChestSwap());
         this.addModule(new FlyOnFirstTime());
-        this.addModule(new FakeFly());
+
         this.addModule(new TpBot());
         this.addModule(new TargetFollow());
         this.addModule(new PacketLogger());

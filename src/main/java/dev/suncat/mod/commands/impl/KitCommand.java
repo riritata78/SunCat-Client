@@ -1,122 +1,169 @@
 package dev.suncat.mod.commands.impl;
 
-import dev.suncat.suncat;
-import dev.suncat.core.impl.KitManager;
-import dev.suncat.mod.modules.impl.combat.AutoRegear;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import dev.suncat.mod.commands.Command;
+import dev.suncat.core.impl.ModuleManager;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.io.*;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class KitCommand extends Command {
+    // 定义存储套装数据的JSON文件路径
+    final static private String PATH = "ThunderHackRecode/misc/AutoGear.json";
+
     public KitCommand() {
-        super("kit", "save [name] | load [name] | list | delete [name]");
+        super("kit", " <save/load/del/list> <name>");
     }
 
     @Override
-    public void runCommand(String[] parameters) {
-        if (parameters.length == 0) {
-            this.sendUsage();
+    public void runCommand(String[] args) {
+        if (args.length == 0) {
+            sendUsage();
             return;
         }
 
-        switch (parameters[0].toLowerCase()) {
-            case "save" -> {
-                if (parameters.length == 2) {
-                    if (mc.player == null) return;
-                    KitManager.saveKit(parameters[1]);
-                } else {
-                    this.sendUsage();
-                }
-            }
-            case "load" -> {
-                if (parameters.length == 2) {
-                    if (mc.player == null) return;
-                    // Check if kit exists
-                    KitManager.Kit kit = KitManager.getKit(parameters[1]);
-                    if (kit != null) {
-                        // Set the loaded kit name to AutoRegear
-                        if (AutoRegear.INSTANCE != null) {
-                            AutoRegear.INSTANCE.currentKitName = parameters[1];
-                        }
-                        this.sendChatMessage("§a[Kit] §7已加载 Kit: §f" + parameters[1]);
-                    } else {
-                        this.sendChatMessage("§c[Kit] §7未找到 Kit: §f" + parameters[1]);
-                    }
-                } else {
-                    this.sendUsage();
-                }
-            }
-            case "list" -> {
-                File kitsDir = new File("suncat/kits");
-                if (!kitsDir.exists()) {
-                    this.sendChatMessage("§c[Kit] §7没有找到任何 Kit");
+        String subCommand = args[0].toLowerCase();
+
+        switch (subCommand) {
+            case "list":
+                listMessage();
+                break;
+            case "save":
+                if (args.length < 2) {
+                    sendUsage();
                     return;
                 }
-                File[] files = kitsDir.listFiles();
-                boolean found = false;
-                if (files != null) {
-                    for (File file : files) {
-                        if (!file.getName().endsWith(".json")) continue;
-                        String name = file.getName().replace(".json", "");
-                        this.sendChatMessage("§a[Kit] §7找到 Kit: §f" + name);
-                        found = true;
-                    }
+                save(args[1]);
+                break;
+            case "load":
+                if (args.length < 2) {
+                    sendUsage();
+                    return;
                 }
-                if (!found) {
-                    this.sendChatMessage("§c[Kit] §7没有找到任何 Kit");
+                set(args[1]);
+                break;
+            case "del":
+                if (args.length < 2) {
+                    sendUsage();
+                    return;
                 }
-            }
-            case "delete" -> {
-                if (parameters.length == 2) {
-                    File kitsDir = new File("suncat/kits");
-                    File kitFile = new File(kitsDir, parameters[1] + ".json");
-                    if (kitFile.exists()) {
-                        kitFile.delete();
-                        this.sendChatMessage("§a[Kit] §7已删除 Kit: §f" + parameters[1]);
-                    } else {
-                        this.sendChatMessage("§c[Kit] §7未找到 Kit: §f" + parameters[1]);
-                    }
-                } else {
-                    this.sendUsage();
-                }
-            }
-            default -> this.sendUsage();
+                delete(args[1]);
+                break;
+            default:
+                sendUsage();
+                break;
         }
     }
 
     @Override
-    public String[] getAutocorrect(int count, List<String> seperated) {
-        if (count == 1) {
-            String input = seperated.getLast().toLowerCase();
-            ArrayList<String> correct = new ArrayList<>();
-            List<String> list = List.of("save", "load", "list", "delete");
-            for (String x : list) {
-                if (!input.equalsIgnoreCase(suncat.getPrefix() + "kit") && !x.toLowerCase().startsWith(input)) continue;
-                correct.add(x);
-            }
-            return correct.toArray(new String[0]);
+    public String[] getAutocorrect(int argIndex, List<String> args) {
+        if (argIndex == 0) {
+            return new String[]{"create", "set", "del", "list"};
         }
-        // Autocomplete kit names for "load" and "delete" commands
-        if (count == 2) {
-            String command = seperated.get(0).toLowerCase();
-            if (command.equals("load") || command.equals("delete")) {
-                File kitsDir = new File("suncat/kits");
-                if (kitsDir.exists() && kitsDir.isDirectory()) {
-                    File[] files = kitsDir.listFiles((dir, name) -> name.endsWith(".json"));
-                    if (files != null) {
-                        String input = seperated.getLast().toLowerCase();
-                        return Arrays.stream(files)
-                                .map(f -> f.getName().replace(".json", ""))
-                                .filter(name -> name.toLowerCase().startsWith(input))
-                                .toArray(String[]::new);
-                    }
-                }
-            }
+        return new String[0];
+    }
+
+    public static String getSelectedKit() {
+        try {
+            JsonObject json = new JsonParser().parse(new FileReader(PATH)).getAsJsonObject();
+            if (!json.get("selected").getAsString().equals("none"))
+                return json.get("selected").getAsString();
+        } catch (Exception ignored) {
         }
-        return null;
+        return "";
+    }
+
+    public static String getKitItems(String kit) {
+        try {
+            JsonObject json = new JsonParser().parse(new FileReader(PATH)).getAsJsonObject();
+            return json.get(kit).getAsString();
+        } catch (Exception ignored) {
+        }
+        return "";
+    }
+
+    private void listMessage() {
+        try {
+            JsonObject json = new JsonParser().parse(new FileReader(PATH)).getAsJsonObject();
+            sendChatMessage("Available kits:");
+            for (int i = 0; i < json.entrySet().size(); i++) {
+                String item = json.entrySet().toArray()[i].toString().split("=")[0];
+                sendChatMessage("-> " + item + (item.equals("selected") ? " (Selected)" : ""));
+            }
+        } catch (Exception e) {
+            sendChatMessage("Error with kit cfg!");
+        }
+    }
+
+    private void delete(String name) {
+        try {
+            JsonObject json = new JsonParser().parse(new FileReader(PATH)).getAsJsonObject();
+            if (json.get(name) != null && !name.equals("selected")) {
+                json.remove(name);
+                if (json.get("selected").getAsString().equals(name))
+                    json.addProperty("selected", "none");
+                saveFile(json, name, "deleted");
+            } else {
+                sendChatMessage("Kit not found");
+            }
+        } catch (Exception e) {
+            sendChatMessage("Kit not found");
+        }
+    }
+
+    private void set(String name) {
+        try {
+            JsonObject json = new JsonParser().parse(new FileReader(PATH)).getAsJsonObject();
+            if (json.get(name) != null && !name.equals("selected")) {
+                json.addProperty("selected", name);
+                saveFile(json, name, "selected");
+                // ModuleManager.autoGear.setup();
+            } else {
+                sendChatMessage("Kit not found");
+            }
+        } catch (Exception e) {
+            sendChatMessage("Kit not found");
+        }
+    }
+
+    private void save(String name) {
+        JsonObject json = new JsonObject();
+        try {
+            json = new JsonParser().parse(new FileReader(PATH)).getAsJsonObject();
+            if (json.get(name) != null && !name.equals("selected")) {
+                sendChatMessage("This kit already exist");
+                return;
+            }
+        } catch (IOException e) {
+            json.addProperty("selected", "none");
+        }
+
+        StringBuilder jsonInventory = new StringBuilder();
+
+        for (int i = 0; i < mc.player.getInventory().main.size(); i++) {
+            var item = mc.player.getInventory().main.get(i);
+            jsonInventory.append(item.getItem().getTranslationKey()).append(" ");
+        }
+
+        json.addProperty(name, jsonInventory.toString());
+        saveFile(json, name, "saved");
+    }
+
+    private void saveFile(JsonObject completeJson, String name, String operation) {
+        try {
+            File file = new File(PATH);
+            try {
+                file.createNewFile();
+            } catch (Exception ignored) {
+            }
+
+            BufferedWriter bw = new BufferedWriter(new FileWriter(PATH));
+            bw.write(completeJson.toString());
+            bw.close();
+            sendChatMessage("Kit " + name + " " + operation);
+        } catch (IOException e) {
+            sendChatMessage("Error saving the file");
+        }
     }
 }

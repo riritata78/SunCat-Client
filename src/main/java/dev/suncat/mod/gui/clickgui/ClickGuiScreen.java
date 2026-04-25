@@ -20,7 +20,6 @@ import dev.suncat.api.utils.render.Render2DUtil;
 import dev.suncat.api.utils.render.TextUtil;
 import dev.suncat.core.impl.FontManager;
 import dev.suncat.api.utils.render.ColorUtil;
-import dev.suncat.mod.gui.clickgui.pages.ClickGuiAiAssistantPage;
 import dev.suncat.mod.gui.clickgui.pages.ClickGuiConfigPage;
 import dev.suncat.mod.gui.clickgui.pages.ClickGuiHudPage;
 import dev.suncat.mod.gui.clickgui.pages.ClickGuiModulePage;
@@ -74,7 +73,6 @@ extends Screen {
     private final ClickGuiModulePage modulePage = new ClickGuiModulePage(this);
     private final ClickGuiConfigPage configPage = new ClickGuiConfigPage(this);
     private final ClickGuiHudPage hudPage = new ClickGuiHudPage(this);
-    private final ClickGuiAiAssistantPage aiAssistantPage = new ClickGuiAiAssistantPage(this);
     private ClickGuiFrame lastFrame;
     private float topTabAnimX;
     private float topTabAnimW;
@@ -121,7 +119,6 @@ extends Screen {
         this.topTabs.add(new TopTab(Page.Module, "Module", "模块"));
         this.topTabs.add(new TopTab(Page.Config, "Config", "配置"));
         this.topTabs.add(new TopTab(Page.Hud, "HUD", "HUD"));
-        this.topTabs.add(new TopTab(Page.AiAssistant, "AI Assistant", "AI助手"));
         this.modulePage.load();
         this.hudPage.init();
     }
@@ -320,7 +317,6 @@ extends Screen {
         this.modulePage.render(context, mouseX, mouseY, delta);
         this.configPage.render(context, mouseX, mouseY, delta, frame);
         this.hudPage.render(context, mouseX, mouseY, delta, frame);
-        this.aiAssistantPage.render(context, mouseX, mouseY, delta, frame);
         context.getMatrices().pop();
         ClickGui gui = ClickGui.getInstance();
         if (gui != null && gui.tips.getValue()) {
@@ -400,9 +396,6 @@ extends Screen {
         if (this.page == Page.Hud && this.hudPage.mouseClicked((int)mouseX, (int)mouseY, clickedButton, frame)) {
             return true;
         }
-        if (this.page == Page.AiAssistant && this.aiAssistantPage.mouseClicked((int)mouseX, (int)mouseY, clickedButton, frame)) {
-            return true;
-        }
         return super.mouseClicked(mouseX, mouseY, clickedButton);
     }
 
@@ -463,10 +456,6 @@ extends Screen {
             }
         } else if (this.page == Page.Hud) {
             this.hudPage.mouseScrolled(verticalAmount);
-        } else if (this.page == Page.AiAssistant && this.lastFrame != null) {
-            if (this.aiAssistantPage.mouseScrolled(verticalAmount, (int)mouseX, (int)mouseY, this.lastFrame)) {
-                return true;
-            }
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
@@ -502,9 +491,6 @@ extends Screen {
             this.hudPage.keyPressed(keyCode);
             return super.keyPressed(keyCode, scanCode, modifiers);
         }
-        if (this.page == Page.AiAssistant && this.aiAssistantPage.keyPressed(keyCode)) {
-            return true;
-        }
         if (this.page == Page.Config && this.configPage.keyPressed(keyCode)) {
             return true;
         }
@@ -523,9 +509,6 @@ extends Screen {
         if (this.page == Page.Hud) {
             this.hudPage.charTyped(chr, modifiers);
             return super.charTyped(chr, modifiers);
-        }
-        if (this.page == Page.AiAssistant && this.aiAssistantPage.charTyped(chr)) {
-            return true;
         }
         if (this.page == Page.Config && this.configPage.charTyped(chr)) {
             return true;
@@ -682,9 +665,6 @@ extends Screen {
         this.configPage.stopNameListening();
         if (page == Page.Config) {
             this.configPage.onOpen();
-        }
-        if (page == Page.AiAssistant) {
-            this.aiAssistantPage.onOpen();
         }
         if (page == Page.Hud && resetHud) {
             this.hudPage.resetHudLayout();
@@ -976,8 +956,7 @@ extends Screen {
     public static enum Page {
         Module,
         Config,
-        Hud,
-        AiAssistant;
+        Hud;
 
     }
 

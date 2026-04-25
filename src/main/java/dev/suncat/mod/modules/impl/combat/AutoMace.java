@@ -13,7 +13,7 @@ import dev.suncat.api.utils.player.InventoryUtil;
 import dev.suncat.api.utils.world.BlockUtil;
 import dev.suncat.suncat;
 import dev.suncat.mod.modules.Module;
-import dev.suncat.mod.modules.impl.movement.FakeFly;
+
 import dev.suncat.mod.modules.settings.impl.BooleanSetting;
 import dev.suncat.mod.modules.settings.impl.EnumSetting;
 import dev.suncat.mod.modules.settings.impl.SliderSetting;
